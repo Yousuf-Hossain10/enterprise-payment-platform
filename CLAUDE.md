@@ -29,8 +29,8 @@ Read the following files in this folder before doing any work — they are the f
 
 ## Current Progress
 
-**Day:** 7
-**Phase:** 3 — Local Infrastructure (Phase 2 complete, pending push/review)
-**Last completed:** Day 6 — scaffolded the Angular app (`src/Frontend/payment-platform-ui`, standalone components, routing, SCSS), stripped the default `ng new` placeholder template/tests, and wrote the root `README.md`. Verified both `dotnet build PaymentPlatform.sln` and `ng build` succeed clean, and that the folder structure matches `docs/Folder-Structure.md` exactly. Phase 2's Definition of Done is fully met. Committed locally to `main`, Days 5–6 not yet pushed — awaiting review checkpoint before Phase 3 begins.
+**Day:** 8
+**Phase:** 3 — Local Infrastructure
+**Last completed:** Day 7 — `scripts/bootstrap.sh`/`.ps1` (namespace creation, verified for real: `platform`/`monitoring`/`ingress-nginx` created and idempotent on re-run). **Deviation from the tutorial:** local development runs against Docker Desktop's built-in Kubernetes (`docker-desktop` context) instead of a standalone `kind` cluster — `kind`'s binary is distributed via `github.com`, which is unreachable from this sandboxed dev environment. No `kind-config.yaml` exists as a result. Documented in `docs/Deployment-Strategy.md` under "Local Cluster: Docker Desktop Kubernetes, Not Kind", with references updated in `Architecture.md` and `Security-Model.md`. Committed locally to `main`, not yet pushed.
 
 *(Update this section at the end of every session so the next session picks up in the right place.)*

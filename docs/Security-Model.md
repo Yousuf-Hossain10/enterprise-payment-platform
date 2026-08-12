@@ -16,7 +16,7 @@ This is the outline defined in `Phase4-17_Breakdown_and_Security_Model.md`, popu
 
 ## 3. Secrets Management
 
-- **Local/dev:** plain Kubernetes Secrets, provisioned by `scripts/bootstrap.sh`/`.ps1` (Phase 3, Day 8). This is an accepted risk at this project stage — Kind is a local, single-user cluster with no external exposure.
+- **Local/dev:** plain Kubernetes Secrets, provisioned by `scripts/bootstrap.sh`/`.ps1` (Phase 3, Day 8). This is an accepted risk at this project stage — the local cluster (Docker Desktop Kubernetes, see `Deployment-Strategy.md`) is single-user with no external exposure.
 - **What a real production system would do instead:** external-secrets or Vault, so secrets aren't base64-in-etcd. This is captured as ADR-0012 (Phase 12) rather than implemented, since standing up Vault for a solo local-only project would be infrastructure cosplay without a real secret-rotation need to justify it — the ADR is where that reasoning gets written up properly.
 - CI/CD secret handling (how GitHub Actions accesses deploy credentials without printing them to logs) is defined in Phase 14 once the pipeline exists.
 
@@ -27,7 +27,7 @@ This is the outline defined in `Phase4-17_Breakdown_and_Security_Model.md`, popu
 
 ## 5. Data Protection
 
-- Postgres encryption at rest is deferred to whatever the underlying storage layer provides (Kind's local-path StorageClass has no encryption-at-rest guarantee) — noted explicitly as a simulation limitation, not something this project claims to solve.
+- Postgres encryption at rest is deferred to whatever the underlying storage layer provides (Docker Desktop Kubernetes' default StorageClass has no encryption-at-rest guarantee) — noted explicitly as a simulation limitation, not something this project claims to solve.
 - **This platform simulates payment data; it does not process real payment data.** No real cardholder data, no real PCI-DSS scope. Amounts, account identifiers, and "payments" are internal-ledger constructs only — this is stated here explicitly so the security posture is never misread as a claim of real financial-system compliance.
 - PII is limited to what Identity stores (email, password hash) — no additional PII fields are planned elsewhere in the system as currently scoped.
 

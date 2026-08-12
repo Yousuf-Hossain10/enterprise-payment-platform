@@ -148,7 +148,7 @@ Kubernetes namespace layout (Phase 3), the pods within each, and the NetworkPoli
 flowchart TB
     Internet((Browser)) --> Ingress
 
-    subgraph Cluster["Kind Cluster"]
+    subgraph Cluster["Docker Desktop Kubernetes (see Deployment-Strategy.md)"]
         subgraph NSIngress["namespace: ingress-nginx"]
             Ingress[NGINX Ingress Controller]
         end

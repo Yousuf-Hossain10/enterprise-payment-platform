@@ -1,16 +1,24 @@
 # Deployment Strategy
 
+## Local Cluster: Docker Desktop Kubernetes, Not Kind
+
+The tutorial specifies a standalone `kind` cluster for local development. This project deviates: local development runs against **Docker Desktop's built-in Kubernetes** (`kubectl` context `docker-desktop`) instead.
+
+**Why:** the `kind` CLI's binary distribution is served from `github.com`, which is unreachable from the sandboxed environment this project is built in — `kind` couldn't be installed there, while Docker Desktop's Kubernetes toggle (which itself runs `kindest/node` images under the hood) was already available and required no additional download. Functionally the two are close to interchangeable for this project's purposes — both are a real, local, multi-node Kubernetes control plane — so this is a tooling substitution, not a design change: namespace layout, manifests, Helm charts, and NetworkPolicies are all written against plain Kubernetes APIs and are portable to a real `kind` cluster (or any other cluster) without modification if the tooling constraint is later lifted.
+
+`scripts/bootstrap.sh`/`.ps1` verify the `docker-desktop` context is reachable (overridable via `$KUBE_CONTEXT`/`KUBE_CONTEXT` env var) rather than creating a cluster via `kind create cluster`. There is accordingly no `kind-config.yaml` in this repo.
+
 ## Environments
 
-Three logical environments, all runnable against the same local Kind cluster during development (Phase 3) and later distinguished purely by Helm values (Phase 13) rather than different infrastructure code:
+Three logical environments, all runnable against the same local Docker Desktop Kubernetes cluster during development (Phase 3) and later distinguished purely by Helm values (Phase 13) rather than different infrastructure code:
 
 | Environment | Purpose | Replicas | Resource limits | Namespace |
 |---|---|---|---|---|
-| **dev** | Local iteration, the default for this whole project since there's no real cloud target | 1 per service | Relaxed | `platform` (Kind) |
-| **staging** | A dress rehearsal config — same manifests, prod-like replica counts and limits, still deployable to the local Kind cluster or a throwaway cloud cluster if one is ever stood up | 2 per service | Prod-like | `platform-staging` |
+| **dev** | Local iteration, the default for this whole project since there's no real cloud target | 1 per service | Relaxed | `platform` |
+| **staging** | A dress rehearsal config — same manifests, prod-like replica counts and limits, still deployable to the local cluster or a throwaway cloud cluster if one is ever stood up | 2 per service | Prod-like | `platform-staging` |
 | **prod** | The "as if this were real" target — stricter limits, `podAntiAffinity`, manual approval gate in CI (Phase 14) | 3 per service | Strict | `platform-prod` |
 
-Since this is a solo capstone with one physical cluster (Kind), staging and prod are primarily exercised as **configuration variants** — proving the Helm values-per-environment story works (Phase 13's Definition of Done) — rather than genuinely separate infrastructure. This is stated explicitly so the distinction isn't mistaken for a claim of real multi-environment infrastructure.
+Since this is a solo capstone with one physical cluster, staging and prod are primarily exercised as **configuration variants** — proving the Helm values-per-environment story works (Phase 13's Definition of Done) — rather than genuinely separate infrastructure. This is stated explicitly so the distinction isn't mistaken for a claim of real multi-environment infrastructure.
 
 ## How Helm Values Differ Per Environment
 
