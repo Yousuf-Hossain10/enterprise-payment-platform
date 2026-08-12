@@ -29,8 +29,8 @@ Read the following files in this folder before doing any work — they are the f
 
 ## Current Progress
 
-**Day:** 2
+**Day:** 3
 **Phase:** 1 — Architecture & Planning
-**Last completed:** Day 1 — wrote `docs/Architecture.md` and `docs/Technology-Decisions.md`; committed and pushed directly to `main`.
+**Last completed:** Day 2 — wrote `docs/Folder-Structure.md`, `docs/Coding-Standards.md`, and `docs/Microservice-Responsibilities.md`; committed and pushed directly to `main`.
 
 *(Update this section at the end of every session so the next session picks up in the right place.)*
