@@ -71,7 +71,7 @@ Install and verify before starting Phase 1:
 2. Write each of the following as its own markdown file. Keep them short and living — update them as decisions change rather than treating them as write-once.
 
    - `Architecture.md` — high-level system description, the five services and their responsibilities, how they communicate (sync HTTP via gateway, async via RabbitMQ)
-   - `Technology-Decisions.md` — an ADR-style log: for each major choice (e.g. "RabbitMQ vs Kafka", "NgRx vs Signals"), record the decision, alternatives considered, and why
+   - `Technology-Decisions.md` — **do not use this as a decision log.** Individual ADRs live in `docs/adr/`, one file per decision, per `ADR-Template-and-Starter-Log.md` — that file already supersedes this one. Keep `Technology-Decisions.md` as a short index only: a table of ADR number, title, phase, and status, updated as each ADR is written. Only decisions that are genuinely fixed *at Phase 1* and don't warrant their own ADR belong here directly — e.g. "microservices over a monolith," "monorepo," "Clean Architecture layering" — anything implementation-specific (which broker, which hashing algorithm, which gateway library) is deferred to its own numbered ADR in the phase where it's actually decided, not written here in Phase 1
    - `Folder-Structure.md` — the monorepo layout (defined in Phase 2)
    - `Coding-Standards.md` — SOLID/Clean Architecture rules, naming conventions, the specific patterns mandated in the main instruction doc (Repository pattern, Options pattern, global exception middleware)
    - `Microservice-Responsibilities.md` — one section per service: owns which data, publishes which events, consumes which events
@@ -653,7 +653,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 };
 ```
 
-4. **State management**: Angular signals are sufficient for this scope (five services, no deeply nested shared state) — reach for NgRx only if state complexity grows beyond what signals comfortably handle. Document the choice in `Technology-Decisions.md`.
+4. **State management**: Angular signals are sufficient for this scope (five services, no deeply nested shared state) — reach for NgRx only if state complexity grows beyond what signals comfortably handle. This is ADR-0009 — write it now, in `docs/adr/`, using your own reasoning about the trade-off.
 5. **E2E tests** (Playwright): cover login → view wallet balance → make a payment → see updated balance, as the one true happy-path smoke test.
 6. **Accessibility**: run `axe-core` against key pages, fix contrast/label issues, aim for WCAG AA on forms (login, payment).
 
