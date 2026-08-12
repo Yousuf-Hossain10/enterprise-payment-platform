@@ -19,6 +19,7 @@ Read the following files in this folder before doing any work — they are the f
 - **One day's tasks at a time.** Look up today's day number in `Sprint-Plan-Day-by-Day.md` (see "Current Progress" below), do only that day's tasks, then stop.
 - **Always state which Day/Phase you're working on** before starting, and confirm it matches what's expected next.
 - **Never auto-commit.** Show the diff, explain what you did, and wait for explicit approval before running `git commit`.
+- **Commit directly to `main` through Phase 13.** No feature branches or PRs yet — there's no CI to gate them on until Phase 14 adds branch protection and required checks (Day 71), so a PR before then has nothing to review against. Don't use `/create-pr` or similar until Phase 14.
 - **Never skip ahead to a later phase** even if it would be more convenient — dependencies matter, and so does not overwhelming a single session.
 - **No placeholder or stub code** unless a task explicitly calls for scaffolding — this repo is meant to read as production-oriented throughout, per the main instruction doc.
 - **Follow the Definition of Done** for the current phase (in the tutorial) before considering a phase complete, not just the day's task list.
@@ -28,8 +29,8 @@ Read the following files in this folder before doing any work — they are the f
 
 ## Current Progress
 
-**Day:** 1
+**Day:** 2
 **Phase:** 1 — Architecture & Planning
-**Last completed:** (nothing yet — this is session 1)
+**Last completed:** Day 1 — wrote `docs/Architecture.md` and `docs/Technology-Decisions.md`; committed and pushed directly to `main`.
 
 *(Update this section at the end of every session so the next session picks up in the right place.)*
