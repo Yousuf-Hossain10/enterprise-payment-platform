@@ -29,8 +29,8 @@ Read the following files in this folder before doing any work — they are the f
 
 ## Current Progress
 
-**Day:** 5
-**Phase:** 2 — Repository Initialization (Phase 1 complete, pending push/review)
-**Last completed:** Day 4 — added the full Mermaid diagram set (container, component, deployment, and 7 sequence diagrams) to `docs/Architecture.md`, and wrote `docs/Development-Roadmap.md`. Phase 1's Definition of Done is met: all 11 `/docs` documents exist, all diagrams render, and service ownership is unambiguous (see `Microservice-Responsibilities.md`'s cross-check table). Committed locally to `main`, Days 3–4 not yet pushed — awaiting review checkpoint before Phase 2 begins.
+**Day:** 6
+**Phase:** 2 — Repository Initialization
+**Last completed:** Day 5 — created `PaymentPlatform.sln`, pinned the SDK via `global.json` (.NET 8), and scaffolded Clean Architecture layers for all 5 services (Identity/Wallet/Payment/Notification/Audit, each `Api`+`Application`+`Domain`+`Infrastructure`+`Tests`), the 4 `BuildingBlocks` class libraries, and `Gateway.Api` — 30 projects total, all added to the `.sln` with inward-pointing project references per `Coding-Standards.md`. `dotnet build` succeeds clean (0 warnings/errors). Committed locally to `main`, not yet pushed.
 
 *(Update this section at the end of every session so the next session picks up in the right place.)*
