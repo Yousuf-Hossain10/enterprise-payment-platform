@@ -29,8 +29,8 @@ Read the following files in this folder before doing any work — they are the f
 
 ## Current Progress
 
-**Day:** 3
+**Day:** 4
 **Phase:** 1 — Architecture & Planning
-**Last completed:** Day 2 — wrote `docs/Folder-Structure.md`, `docs/Coding-Standards.md`, and `docs/Microservice-Responsibilities.md`; committed and pushed directly to `main`.
+**Last completed:** Day 3 — wrote `docs/API-Guidelines.md`, `docs/Deployment-Strategy.md`, `docs/Security-Model.md`, `docs/Logging-Strategy.md`, and `docs/Observability-Strategy.md`; committed locally to `main` (not yet pushed).
 
 *(Update this section at the end of every session so the next session picks up in the right place.)*
