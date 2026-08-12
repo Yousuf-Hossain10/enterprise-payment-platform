@@ -29,8 +29,8 @@ Read the following files in this folder before doing any work — they are the f
 
 ## Current Progress
 
-**Day:** 4
-**Phase:** 1 — Architecture & Planning
-**Last completed:** Day 3 — wrote `docs/API-Guidelines.md`, `docs/Deployment-Strategy.md`, `docs/Security-Model.md`, `docs/Logging-Strategy.md`, and `docs/Observability-Strategy.md`; committed locally to `main` (not yet pushed).
+**Day:** 5
+**Phase:** 2 — Repository Initialization (Phase 1 complete, pending push/review)
+**Last completed:** Day 4 — added the full Mermaid diagram set (container, component, deployment, and 7 sequence diagrams) to `docs/Architecture.md`, and wrote `docs/Development-Roadmap.md`. Phase 1's Definition of Done is met: all 11 `/docs` documents exist, all diagrams render, and service ownership is unambiguous (see `Microservice-Responsibilities.md`'s cross-check table). Committed locally to `main`, Days 3–4 not yet pushed — awaiting review checkpoint before Phase 2 begins.
 
 *(Update this section at the end of every session so the next session picks up in the right place.)*
