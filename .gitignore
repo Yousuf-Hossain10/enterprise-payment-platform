@@ -1,0 +1,28 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Env / secrets
+.env
+*.local.json
+appsettings.Development.json
+appsettings.Production.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kind / kubeconfig exports
+kubeconfig*.yaml
