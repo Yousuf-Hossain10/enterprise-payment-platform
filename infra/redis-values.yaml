@@ -1,0 +1,12 @@
+# bitnami/redis — local dev instance for the `platform` namespace.
+# Standalone (not replicated) — Redis here only backs Gateway rate-limit
+# counters (docs/Architecture.md Container Diagram), which doesn't need HA.
+# Password is local-dev-only plaintext, per docs/Security-Model.md section 3.
+architecture: standalone
+
+auth:
+  password: "local-dev-redis"
+
+master:
+  persistence:
+    size: 1Gi

@@ -29,8 +29,8 @@ Read the following files in this folder before doing any work — they are the f
 
 ## Current Progress
 
-**Day:** 8
+**Day:** 9
 **Phase:** 3 — Local Infrastructure
-**Last completed:** Day 7 — `scripts/bootstrap.sh`/`.ps1` (namespace creation, verified for real: `platform`/`monitoring`/`ingress-nginx` created and idempotent on re-run). **Deviation from the tutorial:** local development runs against Docker Desktop's built-in Kubernetes (`docker-desktop` context) instead of a standalone `kind` cluster — `kind`'s binary is distributed via `github.com`, which is unreachable from this sandboxed dev environment. No `kind-config.yaml` exists as a result. Documented in `docs/Deployment-Strategy.md` under "Local Cluster: Docker Desktop Kubernetes, Not Kind", with references updated in `Architecture.md` and `Security-Model.md`. Committed locally to `main`, not yet pushed.
+**Last completed:** Day 8 — added Postgres, RabbitMQ, and Redis Helm installs to `scripts/bootstrap.sh`/`.ps1` (`infra/postgres-values.yaml`, `rabbitmq-values.yaml`, `redis-values.yaml`), targeting the `docker-desktop` context from Day 7. Verified for real against a live cluster: ran the full script end-to-end, all three pods `1/1 Running`, all three Helm releases `deployed`. **Notable hiccup:** `bitnami/rabbitmq` has zero published tags on Docker Hub (Broadcom's Bitnami catalog restructuring) — worked around via `bitnamilegacy/rabbitmq` at the chart's expected pinned tag + `global.security.allowInsecureImages: true` (documented upstream workaround, [bitnami/charts#30850](https://github.com/bitnami/charts/issues/30850)). Documented in `docs/Deployment-Strategy.md` under "Local Infra Images". **ADR-0020 added to the log** (not by me) — "kind vs. Docker Desktop Kubernetes" is now a formal decision point for Phase 3, prompted by Day 7's forced substitution; unwritten, yours to do. Committed locally to `main`, not yet pushed.
 
 *(Update this section at the end of every session so the next session picks up in the right place.)*

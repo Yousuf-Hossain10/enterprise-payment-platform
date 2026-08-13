@@ -183,5 +183,6 @@ Work through these in phase order. For each, spend real time on the "why," not j
 | ADR-0017 | 17 | Load testing tool: k6 vs. Gatling vs. JMeter | What does each optimize for (scripting ergonomics vs. protocol coverage vs. ecosystem maturity)? |
 | ADR-0018 | 18 | Risk service fail-open vs. fail-closed on outage | If you were the business owner, not the engineer, which failure mode would you actually want — and does that change your answer? |
 | ADR-0019 | 19 | Reporting service: rebuild-on-demand vs. always-on replica | What does "always eventually consistent" cost you operationally that a rebuild-on-demand model avoids, and vice versa? |
+| ADR-0020 | 3 | Local cluster: `kind` vs. Docker Desktop Kubernetes | This one wasn't chosen deliberately — it was forced by `kind` being unreachable from the dev sandbox. Now that you're not blocked, is Docker Desktop Kubernetes still the right call for the rest of the project, or is `kind`'s multi-node support worth going back for before Phase 12's NetworkPolicy/HPA work needs it? |
 
-Add new rows as you discover more decisions mid-implementation — the log above is a floor, not a ceiling.
+Add new rows as you discover more decisions mid-implementation — the log above is a floor, not a ceiling. ADR-0020 is a live example: Day 7 hit a real infrastructure substitution that wasn't on the original list, and it got added rather than left undocumented.

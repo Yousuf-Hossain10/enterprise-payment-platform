@@ -1,0 +1,13 @@
+# bitnami/postgresql — local dev instance for the `platform` namespace.
+# Credentials here are local-dev-only plaintext, per docs/Security-Model.md
+# section 3 (a real deployment sources these from an external secret store).
+# Rotate before this is ever reused outside a throwaway local cluster.
+auth:
+  postgresPassword: "local-dev-postgres-admin"
+  username: "payment_platform"
+  password: "local-dev-payment-platform"
+  database: "payment_platform"
+
+primary:
+  persistence:
+    size: 1Gi

@@ -8,6 +8,12 @@ The tutorial specifies a standalone `kind` cluster for local development. This p
 
 `scripts/bootstrap.sh`/`.ps1` verify the `docker-desktop` context is reachable (overridable via `$KUBE_CONTEXT`/`KUBE_CONTEXT` env var) rather than creating a cluster via `kind create cluster`. There is accordingly no `kind-config.yaml` in this repo.
 
+## Local Infra Images: `bitnamilegacy`, Not `bitnami`, for RabbitMQ
+
+As of this writing, `docker.io/bitnami/rabbitmq` has **zero published tags** — Broadcom's August 2025 restructuring of the Bitnami catalog moved free-tier images off the `bitnami/*` namespace, in RabbitMQ's case leaving nothing behind at all (Postgres and Redis's `bitnami/*` repos still serve a `latest` tag, so their charts install unmodified). The frozen historical images now live under `bitnamilegacy/*`.
+
+`infra/rabbitmq-values.yaml` overrides `image.repository` to `bitnamilegacy/rabbitmq` at the exact tag the chart expects (`4.1.3-debian-12-r1`), plus `global.security.allowInsecureImages: true`, which the chart requires to deploy an image outside its known-good list (documented upstream workaround, [bitnami/charts#30850](https://github.com/bitnami/charts/issues/30850)). This is a pinned, verified-working workaround for a registry-availability problem, not an endorsement of the `bitnamilegacy` namespace as a long-term source — if this chart's default image is restored to a working state upstream, this override should be removed.
+
 ## Environments
 
 Three logical environments, all runnable against the same local Docker Desktop Kubernetes cluster during development (Phase 3) and later distinguished purely by Helm values (Phase 13) rather than different infrastructure code:
