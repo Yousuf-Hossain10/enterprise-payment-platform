@@ -20,28 +20,51 @@ public class LoginCommandHandler
     private readonly IUserRepository _users;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IValidator<LoginCommand> _validator;
+    private readonly ITokenService _tokenService;
+    private readonly IRefreshTokenRepository _refreshTokens;
+    private readonly IRefreshTokenHasher _refreshTokenHasher;
 
     public LoginCommandHandler(
-        IUserRepository users, IPasswordHasher passwordHasher, IValidator<LoginCommand> validator)
+        IUserRepository users,
+        IPasswordHasher passwordHasher,
+        IValidator<LoginCommand> validator,
+        ITokenService tokenService,
+        IRefreshTokenRepository refreshTokens,
+        IRefreshTokenHasher refreshTokenHasher)
     {
         _users = users;
         _passwordHasher = passwordHasher;
         _validator = validator;
+        _tokenService = tokenService;
+        _refreshTokens = refreshTokens;
+        _refreshTokenHasher = refreshTokenHasher;
     }
 
-    public async Task<Result<User>> HandleAsync(LoginCommand command, CancellationToken cancellationToken)
+    public async Task<Result<TokenPair>> HandleAsync(LoginCommand command, CancellationToken cancellationToken)
     {
         var validation = await _validator.ValidateAsync(command, cancellationToken);
         if (!validation.IsValid)
-            return Result<User>.Failure(string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
+            return Result<TokenPair>.Failure(string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
 
         var user = await _users.GetByEmailAsync(command.Email, cancellationToken);
 
         // Same error for "no such user" and "wrong password" - a distinct message
         // would let a caller enumerate registered emails.
         if (user is null || !_passwordHasher.Verify(command.Password, user.PasswordHash))
-            return Result<User>.Failure("Invalid email or password.");
+            return Result<TokenPair>.Failure("Invalid email or password.");
 
-        return Result<User>.Success(user);
+        var tokens = await _tokenService.IssueAsync(user, cancellationToken);
+
+        await _refreshTokens.AddAsync(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = _refreshTokenHasher.Hash(tokens.RefreshToken),
+            ExpiresAtUtc = tokens.RefreshTokenExpiresAtUtc,
+            Revoked = false,
+            CreatedAtUtc = DateTime.UtcNow
+        }, cancellationToken);
+
+        return Result<TokenPair>.Success(tokens);
     }
 }

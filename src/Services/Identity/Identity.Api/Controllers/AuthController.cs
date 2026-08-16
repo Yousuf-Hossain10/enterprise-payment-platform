@@ -57,8 +57,13 @@ public class AuthController : ControllerBase
             });
         }
 
-        // Token issuance is Day 19 - today's login only confirms the credentials
-        // are valid.
-        return Ok(new { userId = result.Value!.Id, email = result.Value.Email });
+        var tokens = result.Value!;
+        return Ok(new
+        {
+            accessToken = tokens.AccessToken,
+            accessTokenExpiresAtUtc = tokens.AccessTokenExpiresAtUtc,
+            refreshToken = tokens.RefreshToken,
+            refreshTokenExpiresAtUtc = tokens.RefreshTokenExpiresAtUtc
+        });
     }
 }

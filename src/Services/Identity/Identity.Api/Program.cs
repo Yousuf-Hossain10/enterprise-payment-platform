@@ -1,5 +1,6 @@
 using BuildingBlocks.Common;
 using BuildingBlocks.Observability;
+using BuildingBlocks.Security;
 using FluentValidation;
 using Identity.Application;
 using Identity.Infrastructure;
@@ -21,6 +22,15 @@ builder.Services.AddScoped<IValidator<RegisterUserCommand>, RegisterUserCommandV
 builder.Services.AddScoped<IValidator<LoginCommand>, LoginCommandValidator>();
 builder.Services.AddScoped<RegisterUserCommandHandler>();
 builder.Services.AddScoped<LoginCommandHandler>();
+
+// JwtOptions bound here (not the full AddPlatformJwtAuthentication()) because
+// Identity issues tokens but has no protected endpoints of its own yet to
+// validate incoming bearer tokens against.
+builder.Services.AddValidatedOptions<JwtOptions>("Jwt");
+builder.Services.AddValidatedOptions<TokenIssuanceOptions>("TokenIssuance");
+builder.Services.AddScoped<ITokenService, JwtTokenService>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IRefreshTokenHasher, Sha256RefreshTokenHasher>();
 
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("IdentityDb")!, tags: [HealthCheckEndpointExtensions.ReadyTag]);
