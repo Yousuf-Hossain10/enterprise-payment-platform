@@ -22,6 +22,12 @@ As of this writing, `docker.io/bitnami/rabbitmq` has **zero published tags** —
 
 `infra/loki-values.yaml` overrides `loki.isDefault: false` — Prometheus remains the default datasource, Loki is registered as a secondary one. Install order matters here in principle (`kube-prometheus-stack` before `loki`, so Grafana exists for the sidecar to attach to), and `scripts/bootstrap.sh`/`.ps1` install them in that order.
 
+## `BuildingBlocks.Observability` + EF Core Npgsql: Pin `Npgsql.OpenTelemetry` to 8.x
+
+Any service that references both `BuildingBlocks.Observability` (for `AddNpgsql()` tracing instrumentation, Day 15) and `Npgsql.EntityFrameworkCore.PostgreSQL` (for its own DbContext) will hit a runtime `TypeLoadException` — `Npgsql.OpenTelemetry`'s default version resolves to Npgsql 10.x transitively, which is binary-incompatible with the 8.x-line Npgsql the EF Core provider expects, even though both projects build cleanly (the conflict only surfaces when the app actually opens a connection). First hit and fixed in Identity Service, Day 18 — `Ping.Api`'s Phase 4 composition proof didn't catch this because it never used a real DbContext, only in-memory fakes.
+
+**Fix:** `BuildingBlocks.Observability.csproj` pins `Npgsql.OpenTelemetry` to `8.0.9` explicitly (matching the 8.x line the rest of the stack uses) rather than letting it float to whatever's latest. If a service also references `AspNetCore.HealthChecks.NpgSql` for its readiness check, pin that to the matching `8.0.x` line too — its newer versions have the same problem.
+
 ## Environments
 
 Three logical environments, all runnable against the same local Docker Desktop Kubernetes cluster during development (Phase 3) and later distinguished purely by Helm values (Phase 13) rather than different infrastructure code:
