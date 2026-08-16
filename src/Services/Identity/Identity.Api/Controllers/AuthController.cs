@@ -9,11 +9,19 @@ public class AuthController : ControllerBase
 {
     private readonly RegisterUserCommandHandler _registerHandler;
     private readonly LoginCommandHandler _loginHandler;
+    private readonly RefreshCommandHandler _refreshHandler;
+    private readonly RevokeCommandHandler _revokeHandler;
 
-    public AuthController(RegisterUserCommandHandler registerHandler, LoginCommandHandler loginHandler)
+    public AuthController(
+        RegisterUserCommandHandler registerHandler,
+        LoginCommandHandler loginHandler,
+        RefreshCommandHandler refreshHandler,
+        RevokeCommandHandler revokeHandler)
     {
         _registerHandler = registerHandler;
         _loginHandler = loginHandler;
+        _refreshHandler = refreshHandler;
+        _revokeHandler = revokeHandler;
     }
 
     public record RegisterRequest(string Email, string Password);
@@ -57,13 +65,58 @@ public class AuthController : ControllerBase
             });
         }
 
-        var tokens = result.Value!;
-        return Ok(new
-        {
-            accessToken = tokens.AccessToken,
-            accessTokenExpiresAtUtc = tokens.AccessTokenExpiresAtUtc,
-            refreshToken = tokens.RefreshToken,
-            refreshTokenExpiresAtUtc = tokens.RefreshTokenExpiresAtUtc
-        });
+        return Ok(ToResponse(result.Value!));
     }
+
+    public record RefreshRequest(string RefreshToken);
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh(RefreshRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _refreshHandler.HandleAsync(
+            new RefreshCommand(request.RefreshToken), cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Refresh failed",
+                Detail = result.Error,
+                Instance = HttpContext.TraceIdentifier
+            });
+        }
+
+        return Ok(ToResponse(result.Value!));
+    }
+
+    public record LogoutRequest(string RefreshToken);
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(LogoutRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _revokeHandler.HandleAsync(
+            new RevokeCommand(request.RefreshToken), cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Logout failed",
+                Detail = result.Error,
+                Instance = HttpContext.TraceIdentifier
+            });
+        }
+
+        return NoContent();
+    }
+
+    private static object ToResponse(TokenPair tokens) => new
+    {
+        accessToken = tokens.AccessToken,
+        accessTokenExpiresAtUtc = tokens.AccessTokenExpiresAtUtc,
+        refreshToken = tokens.RefreshToken,
+        refreshTokenExpiresAtUtc = tokens.RefreshTokenExpiresAtUtc
+    };
 }

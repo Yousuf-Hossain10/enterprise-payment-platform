@@ -55,7 +55,7 @@ public class LoginCommandHandler
 
         var tokens = await _tokenService.IssueAsync(user, cancellationToken);
 
-        await _refreshTokens.AddAsync(new RefreshToken
+        _refreshTokens.Add(new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
@@ -63,7 +63,8 @@ public class LoginCommandHandler
             ExpiresAtUtc = tokens.RefreshTokenExpiresAtUtc,
             Revoked = false,
             CreatedAtUtc = DateTime.UtcNow
-        }, cancellationToken);
+        });
+        await _refreshTokens.SaveChangesAsync(cancellationToken);
 
         return Result<TokenPair>.Success(tokens);
     }

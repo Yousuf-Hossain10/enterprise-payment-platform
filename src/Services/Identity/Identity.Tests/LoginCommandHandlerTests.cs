@@ -41,13 +41,12 @@ public class LoginCommandHandlerTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal(tokens, result.Value);
-        await refreshTokens.Received(1).AddAsync(
-            Arg.Is<RefreshToken>(t =>
-                t.UserId == user.Id &&
-                t.TokenHash == "hashed-refresh-token" &&
-                t.ExpiresAtUtc == tokens.RefreshTokenExpiresAtUtc &&
-                !t.Revoked),
-            Arg.Any<CancellationToken>());
+        refreshTokens.Received(1).Add(Arg.Is<RefreshToken>(t =>
+            t.UserId == user.Id &&
+            t.TokenHash == "hashed-refresh-token" &&
+            t.ExpiresAtUtc == tokens.RefreshTokenExpiresAtUtc &&
+            !t.Revoked));
+        await refreshTokens.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]

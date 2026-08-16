@@ -2,9 +2,18 @@ using Identity.Domain;
 
 namespace Identity.Application;
 
+/// <summary>
+/// Add/SaveChangesAsync are split (rather than one auto-saving AddAsync) so
+/// rotation can revoke the old token and add its replacement in a single
+/// atomic SaveChangesAsync - if those happened as two separate saves, a
+/// failure between them could revoke a token without ever persisting its
+/// replacement, locking the caller out.
+/// </summary>
 public interface IRefreshTokenRepository
 {
-    Task AddAsync(RefreshToken token, CancellationToken cancellationToken);
+    void Add(RefreshToken token);
 
-    // Lookup/rotation methods land Day 20 alongside refresh-token rotation.
+    Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken cancellationToken);
+
+    Task SaveChangesAsync(CancellationToken cancellationToken);
 }

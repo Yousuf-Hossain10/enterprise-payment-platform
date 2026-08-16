@@ -20,8 +20,12 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPasswordHasher, Argon2idPasswordHasher>();
 builder.Services.AddScoped<IValidator<RegisterUserCommand>, RegisterUserCommandValidator>();
 builder.Services.AddScoped<IValidator<LoginCommand>, LoginCommandValidator>();
+builder.Services.AddScoped<IValidator<RefreshCommand>, RefreshCommandValidator>();
+builder.Services.AddScoped<IValidator<RevokeCommand>, RevokeCommandValidator>();
 builder.Services.AddScoped<RegisterUserCommandHandler>();
 builder.Services.AddScoped<LoginCommandHandler>();
+builder.Services.AddScoped<RefreshCommandHandler>();
+builder.Services.AddScoped<RevokeCommandHandler>();
 
 // JwtOptions bound here (not the full AddPlatformJwtAuthentication()) because
 // Identity issues tokens but has no protected endpoints of its own yet to
