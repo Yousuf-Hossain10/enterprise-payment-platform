@@ -83,6 +83,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gateway.Api", "src\Gateway\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BuildingBlocks.Common.Tests", "src\BuildingBlocks\BuildingBlocks.Common.Tests\BuildingBlocks.Common.Tests.csproj", "{5A7E2212-5541-4079-86F5-EE71199644BA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BuildingBlocks.Messaging.Tests", "src\BuildingBlocks\BuildingBlocks.Messaging.Tests\BuildingBlocks.Messaging.Tests.csproj", "{58231562-890B-400F-8AE3-5B2915F1E6A6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -216,6 +218,10 @@ Global
 		{5A7E2212-5541-4079-86F5-EE71199644BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5A7E2212-5541-4079-86F5-EE71199644BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5A7E2212-5541-4079-86F5-EE71199644BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{58231562-890B-400F-8AE3-5B2915F1E6A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58231562-890B-400F-8AE3-5B2915F1E6A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58231562-890B-400F-8AE3-5B2915F1E6A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58231562-890B-400F-8AE3-5B2915F1E6A6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{29D303F2-9FA6-43F0-AC2B-9EC9AA009CD8} = {EB717888-5900-4CE3-8B8A-F9906004B255}
@@ -257,5 +263,6 @@ Global
 		{BF528B90-495D-47EE-B324-0DE9A1886DB1} = {EB717888-5900-4CE3-8B8A-F9906004B255}
 		{D37C5138-2E7A-4EA4-8BB5-9A898E69413B} = {BF528B90-495D-47EE-B324-0DE9A1886DB1}
 		{5A7E2212-5541-4079-86F5-EE71199644BA} = {29D303F2-9FA6-43F0-AC2B-9EC9AA009CD8}
+		{58231562-890B-400F-8AE3-5B2915F1E6A6} = {29D303F2-9FA6-43F0-AC2B-9EC9AA009CD8}
 	EndGlobalSection
 EndGlobal
