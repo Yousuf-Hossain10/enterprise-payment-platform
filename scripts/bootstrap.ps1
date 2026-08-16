@@ -48,4 +48,12 @@ helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheu
 helm upgrade --install loki grafana/loki-stack --version 2.10.3 `
   -n monitoring -f "$RepoRoot\infra\loki-values.yaml" --wait --timeout 5m
 
-Write-Host "==> Bootstrap complete (namespaces, Postgres/RabbitMQ/Redis, Ingress, and observability stack as of Phase 3, Day 9)"
+Write-Host "==> Creating per-service databases (database-per-service, docs/Microservice-Responsibilities.md)"
+foreach ($db in @("identity")) {
+    $exists = kubectl exec -n platform postgres-postgresql-0 -- env PGPASSWORD=local-dev-postgres-admin psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = '$db'"
+    if ($exists -notmatch "1") {
+        kubectl exec -n platform postgres-postgresql-0 -- env PGPASSWORD=local-dev-postgres-admin psql -U postgres -c "CREATE DATABASE $db OWNER payment_platform;"
+    }
+}
+
+Write-Host "==> Bootstrap complete (namespaces, Postgres/RabbitMQ/Redis, Ingress, observability stack, and per-service databases)"

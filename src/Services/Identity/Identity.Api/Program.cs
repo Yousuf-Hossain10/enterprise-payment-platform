@@ -1,6 +1,12 @@
+using Identity.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+builder.Services.AddDbContext<IdentityDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("IdentityDb")));
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

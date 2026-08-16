@@ -59,9 +59,12 @@ Populated now that `scripts/bootstrap.sh`/`.ps1` actually provision Postgres, Ra
 ### Postgres (`platform` namespace)
 
 - **Host/port (in-cluster):** `postgres-postgresql.platform.svc.cluster.local:5432`
-- **Database / app user:** `payment_platform` / `payment_platform` (set in `infra/postgres-values.yaml`)
+- **Admin user:** `postgres` (set in `infra/postgres-values.yaml`)
+- **App user:** `payment_platform`, owner of every per-service database
 - **Credentials:** K8s Secret `postgres-postgresql` in `platform` — keys `password` (app user) and `postgres-password` (admin). Services read these via a mounted Secret / env var, never a hardcoded connection string.
-- Each of the five microservices will eventually connect here using this one shared Postgres instance with **separate databases per service** (per `Microservice-Responsibilities.md`'s database-per-service rule) — provisioning per-service databases/roles is a Phase 5+ concern, not yet done as of Phase 3.
+- **Database-per-service** (per `Microservice-Responsibilities.md`): one shared Postgres instance, separate database per service, each owned by the `payment_platform` user. `scripts/bootstrap.sh`/`.ps1` create each service's database idempotently (`CREATE DATABASE <name> OWNER payment_platform`, skipped if it already exists) once that service is reached in the build — not all five upfront.
+  - `identity` — created Phase 5, Day 17. Connection string: `ConnectionStrings:IdentityDb` in `Identity.Api`'s `appsettings.json` (in-cluster host) / `appsettings.Development.json` (gitignored, localhost via port-forward for local dev).
+  - Wallet/Payment/Notification/Audit's databases are created when each service is reached (Phases 6-9).
 
 ### RabbitMQ (`platform` namespace)
 
