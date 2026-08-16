@@ -4,6 +4,10 @@ obj/
 *.user
 *.suo
 
+# Relocated NuGet global package cache (see CLAUDE.md / disk-space note) -
+# machine-local cache, never belongs in source control regardless of location.
+.nuget/
+
 # Node / Angular
 node_modules/
 dist/
