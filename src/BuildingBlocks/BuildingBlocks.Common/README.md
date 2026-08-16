@@ -31,8 +31,48 @@ var app = builder.Build();
 app.UseProblemDetailsExceptionHandler();
 ```
 
-The exception's message is only included in the response body (`Detail`) when the host environment is `Development` — outside that, `Detail` is `null`, so internal exception messages are never leaked to a caller in staging/prod. `Instance` is set to `HttpContext.TraceIdentifier`, which becomes the correlation ID once the correlation-ID middleware (Day 12) is wired in.
+The exception's message is only included in the response body (`Detail`) when the host environment is `Development` — outside that, `Detail` is `null`, so internal exception messages are never leaked to a caller in staging/prod. `Instance` is set to `HttpContext.TraceIdentifier`, which is the correlation ID once the correlation-ID middleware below is wired in ahead of it.
 
-## Coming in Day 12
+## `UseCorrelationId()` (Day 12)
 
-Correlation-ID middleware, FluentValidation base validators, and strongly-typed configuration helpers.
+An `IApplicationBuilder` extension that reads `X-Correlation-Id` from the request (generating one if absent), sets it as `HttpContext.TraceIdentifier`, echoes it back on the response, and pushes it into Serilog's `LogContext` for the duration of the request — so every log line emitted while handling that request carries the same `CorrelationId` property, per `docs/Logging-Strategy.md`. **Must be registered before `UseProblemDetailsExceptionHandler()`** so error responses carry the same ID as everything else.
+
+```csharp
+var app = builder.Build();
+app.UseCorrelationId();
+app.UseProblemDetailsExceptionHandler();
+```
+
+## `IdempotentRequestValidatorBase<T>` (Day 12)
+
+A base class for FluentValidation validators of any request that carries an `Idempotency-Key` (every financial write endpoint, per `docs/API-Guidelines.md`). Implement `IIdempotentRequest` and inherit from this instead of re-declaring the same `NotEmpty()` rule per service.
+
+```csharp
+public record CapturePaymentRequest(string IdempotencyKey, decimal Amount) : IIdempotentRequest;
+
+public class CapturePaymentRequestValidator : IdempotentRequestValidatorBase<CapturePaymentRequest>
+{
+    public CapturePaymentRequestValidator()
+    {
+        RuleFor(x => x.Amount).GreaterThan(0);
+    }
+}
+```
+
+## `AddValidatedOptions<TOptions>()` (Day 12)
+
+An `IServiceCollection` extension that binds a configuration section to a typed options class and validates it via data annotations **on startup** (`ValidateOnStart()`), not on first access — per `docs/Coding-Standards.md`, a missing or invalid config value should crash the service at boot, not fail whichever request happens to touch it first.
+
+```csharp
+public class WalletDatabaseOptions
+{
+    [Required]
+    public string? ConnectionString { get; set; }
+}
+
+builder.Services.AddValidatedOptions<WalletDatabaseOptions>("Wallet:Database");
+```
+
+## Coming in Days 13-16
+
+The outbox pattern and idempotent-consumer helper (`BuildingBlocks.Messaging`), OpenTelemetry tracing/metrics and health checks (`BuildingBlocks.Observability`), and JWT middleware/permission attributes (`BuildingBlocks.Security`).

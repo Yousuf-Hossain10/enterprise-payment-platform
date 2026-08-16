@@ -29,8 +29,8 @@ Read the following files in this folder before doing any work — they are the f
 
 ## Current Progress
 
-**Day:** 12
+**Day:** 13
 **Phase:** 4 — Shared Backend Foundation Libraries
-**Last completed:** Day 11 — `BuildingBlocks.Common`: `Result<T>` (rejects null/empty/whitespace failure reasons) and `UseProblemDetailsExceptionHandler()`, an `IApplicationBuilder` extension returning RFC 7807 Problem Details (`application/problem+json`) on unhandled exceptions, with `Detail` only populated in `Development` (exception messages never leak to callers in staging/prod). Added `BuildingBlocks.Common.Tests` (xUnit + `Microsoft.AspNetCore.TestHost`) — 8 tests, all passing; two real bugs were caught and fixed by the tests themselves (wrong response content-type, and an `ArgumentNullException`-vs-`ArgumentException` exact-type assertion mismatch). README added documenting the library's public contract so far. Full solution builds clean (0 warnings, 31 projects). Committed locally to `main` and pushed to `origin/main`.
+**Last completed:** Day 12 — `BuildingBlocks.Common`: `UseCorrelationId()` (reads/generates `X-Correlation-Id`, sets `HttpContext.TraceIdentifier`, echoes it on the response, pushes it into Serilog's `LogContext` — must run before `UseProblemDetailsExceptionHandler()`), `IdempotentRequestValidatorBase<T>` (FluentValidation base class enforcing the `Idempotency-Key` rule from `docs/API-Guidelines.md`), and `AddValidatedOptions<TOptions>()` (binds + validates a config section on startup via `ValidateOnStart()`, not on first use). 8 new tests (16 total in the library now), all passing — the Serilog `LogContext` test uses a real logger + in-memory sink rather than guessing at internal APIs. README updated. Full solution builds clean (0 warnings, 31 projects). `BuildingBlocks.Common` is now feature-complete per the tutorial's Phase 4 spec (Days 13-16 build the other three libraries). Committed locally to `main`, not yet pushed.
 
 *(Update this section at the end of every session so the next session picks up in the right place.)*
