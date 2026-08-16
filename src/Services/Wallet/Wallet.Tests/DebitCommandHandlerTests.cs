@@ -1,0 +1,117 @@
+using NSubstitute;
+using Wallet.Application;
+using Wallet.Domain;
+
+namespace Wallet.Tests;
+
+public class DebitCommandHandlerTests
+{
+    private static DebitCommandHandler CreateSut(out IAccountRepository accounts)
+    {
+        accounts = Substitute.For<IAccountRepository>();
+        return new DebitCommandHandler(accounts, new DebitCommandValidator());
+    }
+
+    private static Account SampleAccount(Guid id) =>
+        new() { Id = id, OwnerId = Guid.NewGuid(), Currency = "USD", CreatedAtUtc = DateTime.UtcNow };
+
+    [Fact]
+    public async Task Succeeds_AndAddsLedgerEntry_WhenBalanceIsSufficient()
+    {
+        var accountId = Guid.NewGuid();
+        var sut = CreateSut(out var accounts);
+        accounts.ExistsByIdempotencyKeyAsync("key-1", Arg.Any<CancellationToken>()).Returns(false);
+        accounts.GetByIdAsync(accountId, Arg.Any<CancellationToken>()).Returns(SampleAccount(accountId));
+        accounts.GetBalanceAsync(accountId, Arg.Any<CancellationToken>()).Returns(100m);
+
+        var result = await sut.HandleAsync(
+            new DebitCommand(accountId, 40m, "key-1", "ref-1"), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(60m, result.Value);
+        accounts.Received(1).AddLedgerEntry(Arg.Is<LedgerEntry>(e =>
+            e.AccountId == accountId &&
+            e.Amount == -40m &&
+            e.Reference == "ref-1" &&
+            e.IdempotencyKey == "key-1"));
+        await accounts.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Fails_AndDoesNotAddLedgerEntry_WhenBalanceIsInsufficient()
+    {
+        var accountId = Guid.NewGuid();
+        var sut = CreateSut(out var accounts);
+        accounts.ExistsByIdempotencyKeyAsync("key-1", Arg.Any<CancellationToken>()).Returns(false);
+        accounts.GetByIdAsync(accountId, Arg.Any<CancellationToken>()).Returns(SampleAccount(accountId));
+        accounts.GetBalanceAsync(accountId, Arg.Any<CancellationToken>()).Returns(10m);
+
+        var result = await sut.HandleAsync(
+            new DebitCommand(accountId, 40m, "key-1", "ref-1"), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        accounts.DidNotReceiveWithAnyArgs().AddLedgerEntry(default!);
+    }
+
+    [Fact]
+    public async Task IsIdempotent_AndReturnsCurrentBalance_WithoutAddingASecondEntry_OnRetry()
+    {
+        var accountId = Guid.NewGuid();
+        var sut = CreateSut(out var accounts);
+        accounts.ExistsByIdempotencyKeyAsync("key-1", Arg.Any<CancellationToken>()).Returns(true);
+        accounts.GetBalanceAsync(accountId, Arg.Any<CancellationToken>()).Returns(60m);
+
+        var result = await sut.HandleAsync(
+            new DebitCommand(accountId, 40m, "key-1", "ref-1"), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(60m, result.Value);
+        accounts.DidNotReceiveWithAnyArgs().AddLedgerEntry(default!);
+        await accounts.DidNotReceiveWithAnyArgs().SaveChangesAsync(default);
+    }
+
+    [Fact]
+    public async Task Fails_WhenAccountDoesNotExist()
+    {
+        var accountId = Guid.NewGuid();
+        var sut = CreateSut(out var accounts);
+        accounts.ExistsByIdempotencyKeyAsync("key-1", Arg.Any<CancellationToken>()).Returns(false);
+        accounts.GetByIdAsync(accountId, Arg.Any<CancellationToken>()).Returns((Account?)null);
+
+        var result = await sut.HandleAsync(
+            new DebitCommand(accountId, 40m, "key-1", "ref-1"), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        accounts.DidNotReceiveWithAnyArgs().AddLedgerEntry(default!);
+    }
+
+    [Fact]
+    public async Task Fails_WhenConcurrentModificationIsDetected()
+    {
+        var accountId = Guid.NewGuid();
+        var sut = CreateSut(out var accounts);
+        accounts.ExistsByIdempotencyKeyAsync("key-1", Arg.Any<CancellationToken>()).Returns(false);
+        accounts.GetByIdAsync(accountId, Arg.Any<CancellationToken>()).Returns(SampleAccount(accountId));
+        accounts.GetBalanceAsync(accountId, Arg.Any<CancellationToken>()).Returns(100m);
+        accounts.SaveChangesAsync(Arg.Any<CancellationToken>())
+            .Returns<Task>(_ => throw new ConcurrencyConflictException("stale", new Exception()));
+
+        var result = await sut.HandleAsync(
+            new DebitCommand(accountId, 40m, "key-1", "ref-1"), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-10)]
+    public async Task Fails_ForNonPositiveAmount(decimal amount)
+    {
+        var sut = CreateSut(out _);
+
+        var result = await sut.HandleAsync(
+            new DebitCommand(Guid.NewGuid(), amount, "key-1", "ref-1"), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+    }
+}
