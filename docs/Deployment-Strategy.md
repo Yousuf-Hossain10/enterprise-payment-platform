@@ -54,15 +54,32 @@ Only image tag, replica count, resource limits, and log verbosity vary per envir
 
 ## Required Environment Variables & Secrets
 
-*(Expanded in full once `scripts/bootstrap.sh`/`.ps1` exist — Phase 3, Day 10 — this section is a placeholder structure, not yet populated, since nothing is provisioned yet as of Phase 1.)*
+Populated now that `scripts/bootstrap.sh`/`.ps1` actually provision Postgres, RabbitMQ, and Redis (Phase 3, Days 8–10). Everything below is local-dev-only plaintext, per `Security-Model.md` §3 — none of it is meant to survive past a throwaway local cluster.
 
-Anticipated categories, to be filled in with concrete names as each is introduced:
+### Postgres (`platform` namespace)
 
-- **Database** — per-service Postgres connection string (host, port, credentials), sourced from a K8s Secret in dev, from external-secrets/Vault in a hypothetical real prod (see `Security-Model.md`).
-- **Messaging** — RabbitMQ connection string/credentials.
-- **Identity/JWT** — signing key (or reference to where it's stored — never in `appsettings.json`), token TTLs.
-- **Observability** — OTLP exporter endpoint (Tempo/Prometheus collector address).
-- **Gateway** — per-service base URLs for YARP routing (or service-discovery equivalent within the cluster).
+- **Host/port (in-cluster):** `postgres-postgresql.platform.svc.cluster.local:5432`
+- **Database / app user:** `payment_platform` / `payment_platform` (set in `infra/postgres-values.yaml`)
+- **Credentials:** K8s Secret `postgres-postgresql` in `platform` — keys `password` (app user) and `postgres-password` (admin). Services read these via a mounted Secret / env var, never a hardcoded connection string.
+- Each of the five microservices will eventually connect here using this one shared Postgres instance with **separate databases per service** (per `Microservice-Responsibilities.md`'s database-per-service rule) — provisioning per-service databases/roles is a Phase 5+ concern, not yet done as of Phase 3.
+
+### RabbitMQ (`platform` namespace)
+
+- **Host/port (in-cluster):** `rabbitmq.platform.svc.cluster.local:5672` (AMQP), `:15672` (management UI)
+- **App user:** `payment_platform` (set in `infra/rabbitmq-values.yaml`)
+- **Credentials:** K8s Secret `rabbitmq` in `platform` — keys `rabbitmq-password` and `rabbitmq-erlang-cookie` (cluster-internal, not an app credential).
+
+### Redis (`platform` namespace)
+
+- **Host/port (in-cluster):** `redis-master.platform.svc.cluster.local:6379`
+- **Credentials:** K8s Secret `redis` in `platform` — key `redis-password`.
+- Standalone (not replicated) — see `Architecture.md`'s Container Diagram; only backs Gateway rate-limit counters as currently scoped.
+
+### Not yet provisioned (later phases)
+
+- **Identity/JWT** — signing key (or reference to where it's stored — never in `appsettings.json`), token TTLs. Phase 5.
+- **Observability** — OTLP exporter endpoint (Tempo/Prometheus collector address); Prometheus itself is live in `monitoring` as of Day 9, Tempo lands Phase 15.
+- **Gateway** — per-service base URLs for YARP routing (or service-discovery equivalent within the cluster). Phase 10.
 
 ## Rollback
 
