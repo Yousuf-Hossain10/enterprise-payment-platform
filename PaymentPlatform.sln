@@ -87,6 +87,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BuildingBlocks.Messaging.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BuildingBlocks.Observability.Tests", "src\BuildingBlocks\BuildingBlocks.Observability.Tests\BuildingBlocks.Observability.Tests.csproj", "{A1704BCB-2067-44CA-8917-527DB997D8F2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BuildingBlocks.Security.Tests", "src\BuildingBlocks\BuildingBlocks.Security.Tests\BuildingBlocks.Security.Tests.csproj", "{A9BEBB7F-BC8D-4642-80A4-67DD3C35BD66}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ping.Api", "src\BuildingBlocks\Ping.Api\Ping.Api.csproj", "{C57446DD-BFE2-4AE9-A4C2-1C6220479752}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -228,6 +232,14 @@ Global
 		{A1704BCB-2067-44CA-8917-527DB997D8F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1704BCB-2067-44CA-8917-527DB997D8F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1704BCB-2067-44CA-8917-527DB997D8F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A9BEBB7F-BC8D-4642-80A4-67DD3C35BD66}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9BEBB7F-BC8D-4642-80A4-67DD3C35BD66}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9BEBB7F-BC8D-4642-80A4-67DD3C35BD66}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9BEBB7F-BC8D-4642-80A4-67DD3C35BD66}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C57446DD-BFE2-4AE9-A4C2-1C6220479752}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C57446DD-BFE2-4AE9-A4C2-1C6220479752}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C57446DD-BFE2-4AE9-A4C2-1C6220479752}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C57446DD-BFE2-4AE9-A4C2-1C6220479752}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{29D303F2-9FA6-43F0-AC2B-9EC9AA009CD8} = {EB717888-5900-4CE3-8B8A-F9906004B255}
@@ -271,5 +283,7 @@ Global
 		{5A7E2212-5541-4079-86F5-EE71199644BA} = {29D303F2-9FA6-43F0-AC2B-9EC9AA009CD8}
 		{58231562-890B-400F-8AE3-5B2915F1E6A6} = {29D303F2-9FA6-43F0-AC2B-9EC9AA009CD8}
 		{A1704BCB-2067-44CA-8917-527DB997D8F2} = {29D303F2-9FA6-43F0-AC2B-9EC9AA009CD8}
+		{A9BEBB7F-BC8D-4642-80A4-67DD3C35BD66} = {29D303F2-9FA6-43F0-AC2B-9EC9AA009CD8}
+		{C57446DD-BFE2-4AE9-A4C2-1C6220479752} = {29D303F2-9FA6-43F0-AC2B-9EC9AA009CD8}
 	EndGlobalSection
 EndGlobal

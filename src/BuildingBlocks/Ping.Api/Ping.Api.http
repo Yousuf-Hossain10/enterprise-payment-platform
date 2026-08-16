@@ -1,0 +1,6 @@
+@Ping.Api_HostAddress = http://localhost:5054
+
+GET {{Ping.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

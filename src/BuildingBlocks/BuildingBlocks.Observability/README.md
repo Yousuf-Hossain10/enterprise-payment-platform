@@ -43,6 +43,6 @@ builder.Services.AddHealthChecks()
 
 **Testing note:** OpenTelemetry/health-check wiring is verified by resolving `TracerProvider`/`MeterProvider`/`HealthCheckService` from a real `ServiceProvider` (misconfiguration here typically throws at resolve time, so this is a meaningful smoke test), the health endpoints are exercised end-to-end via `TestServer` with fake tagged checks, and the `/metrics` endpoint is asserted to actually return Prometheus exposition-format text — all without any live collector, Prometheus server, or database, per `docs/Coding-Standards.md`'s testing strategy.
 
-## Coming in Day 16
+## Phase 4 Definition of Done
 
-`BuildingBlocks.Security` (JWT middleware, permission attribute), READMEs for all four libraries reviewed together, and the throwaway "ping" service proving all four compose and boot successfully — the Phase 4 Definition of Done.
+See `../BuildingBlocks.Security/README.md` for the fourth library, and `../Ping.Api/README.md` for the composition proof.

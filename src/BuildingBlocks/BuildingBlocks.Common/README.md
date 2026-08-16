@@ -2,7 +2,7 @@
 
 Cross-cutting primitives every service references instead of reimplementing. See `docs/Coding-Standards.md` for the patterns this library exists to enforce.
 
-This library is built incrementally across Phase 4 (Days 11-12); this README covers what exists as of each day and is updated as pieces are added — not written once and left stale.
+Built across Phase 4, Days 11-12; feature-complete per the tutorial's spec as of Day 12.
 
 ## `Result<T>` (Day 11)
 
@@ -73,6 +73,6 @@ public class WalletDatabaseOptions
 builder.Services.AddValidatedOptions<WalletDatabaseOptions>("Wallet:Database");
 ```
 
-## Coming in Days 13-16
+## The Other Three Libraries
 
-The outbox pattern and idempotent-consumer helper (`BuildingBlocks.Messaging`), OpenTelemetry tracing/metrics and health checks (`BuildingBlocks.Observability`), and JWT middleware/permission attributes (`BuildingBlocks.Security`).
+Built across the rest of Phase 4: the outbox pattern and idempotent-consumer helper (`../BuildingBlocks.Messaging/README.md`), OpenTelemetry tracing/metrics and health checks (`../BuildingBlocks.Observability/README.md`), and JWT middleware/permission attributes (`../BuildingBlocks.Security/README.md`). `../Ping.Api/README.md` proves all four compose and boot together.
