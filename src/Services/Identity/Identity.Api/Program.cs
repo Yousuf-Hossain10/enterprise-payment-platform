@@ -2,6 +2,7 @@ using BuildingBlocks.Common;
 using BuildingBlocks.Observability;
 using BuildingBlocks.Security;
 using FluentValidation;
+using Identity.Api;
 using Identity.Application;
 using Identity.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +40,8 @@ builder.Services.AddScoped<IRefreshTokenHasher, Sha256RefreshTokenHasher>();
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("IdentityDb")!, tags: [HealthCheckEndpointExtensions.ReadyTag]);
 
+builder.Services.AddRateLimiter(LoginRateLimiting.Configure);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -72,6 +75,7 @@ app.UseHttpsRedirection();
 app.UseCorrelationId();
 app.UseProblemDetailsExceptionHandler();
 
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
