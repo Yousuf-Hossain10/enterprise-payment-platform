@@ -29,8 +29,8 @@ Read the following files in this folder before doing any work — they are the f
 
 ## Current Progress
 
-**Day:** 11
-**Phase:** 4 — Shared Backend Foundation Libraries (Phase 3 complete, pending push/review)
-**Last completed:** Day 10 — added `scripts/teardown.sh`/`.ps1` (uninstalls the 6 Helm releases, then deletes `platform`/`monitoring`/`ingress-nginx` — adapted from the tutorial's `kind delete cluster` since this project runs on Docker Desktop Kubernetes, not kind; there's no cluster to delete, only what `bootstrap.sh` provisions). Verified the full cycle for real: teardown → confirmed zero namespaces/releases/PVCs remain → re-ran teardown (idempotent, no-ops cleanly) → bootstrap from scratch → all 6 releases `deployed`, all pods `Running` again, no Grafana/Loki conflict recurrence. Expanded `docs/Deployment-Strategy.md`'s "Required Environment Variables & Secrets" section with the real Postgres/RabbitMQ/Redis hosts, ports, database/user names, and Secret names now that they're actually provisioned. **Phase 3's Definition of Done is met**: bootstrap runs clean, all infra pods Running, Grafana + RabbitMQ mgmt UI reachable via port-forward (verified Day 9), teardown cleanly removes everything provisioned. Committed locally to `main`, not yet pushed.
+**Day:** 12
+**Phase:** 4 — Shared Backend Foundation Libraries
+**Last completed:** Day 11 — `BuildingBlocks.Common`: `Result<T>` (rejects null/empty/whitespace failure reasons) and `UseProblemDetailsExceptionHandler()`, an `IApplicationBuilder` extension returning RFC 7807 Problem Details (`application/problem+json`) on unhandled exceptions, with `Detail` only populated in `Development` (exception messages never leak to callers in staging/prod). Added `BuildingBlocks.Common.Tests` (xUnit + `Microsoft.AspNetCore.TestHost`) — 8 tests, all passing; two real bugs were caught and fixed by the tests themselves (wrong response content-type, and an `ArgumentNullException`-vs-`ArgumentException` exact-type assertion mismatch). README added documenting the library's public contract so far. Full solution builds clean (0 warnings, 31 projects). Committed locally to `main` and pushed to `origin/main`.
 
 *(Update this section at the end of every session so the next session picks up in the right place.)*
