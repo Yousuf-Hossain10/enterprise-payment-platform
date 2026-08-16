@@ -5,6 +5,7 @@ namespace Identity.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/auth")]
+[Produces("application/json")]
 public class AuthController : ControllerBase
 {
     private readonly RegisterUserCommandHandler _registerHandler;
@@ -26,7 +27,13 @@ public class AuthController : ControllerBase
 
     public record RegisterRequest(string Email, string Password);
 
+    public record RegisterResponse(Guid Id);
+
+    /// <summary>Create a new user account.</summary>
+    /// <remarks>Password must be at least 12 characters.</remarks>
     [HttpPost("register")]
+    [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register(RegisterRequest request, CancellationToken cancellationToken)
     {
         var result = await _registerHandler.HandleAsync(
@@ -43,12 +50,16 @@ public class AuthController : ControllerBase
             });
         }
 
-        return CreatedAtAction(nameof(Register), new { id = result.Value }, new { id = result.Value });
+        var response = new RegisterResponse(result.Value);
+        return CreatedAtAction(nameof(Register), new { id = result.Value }, response);
     }
 
     public record LoginRequest(string Email, string Password);
 
+    /// <summary>Exchange credentials for an access/refresh token pair.</summary>
     [HttpPost("login")]
+    [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
     {
         var result = await _loginHandler.HandleAsync(
@@ -65,12 +76,19 @@ public class AuthController : ControllerBase
             });
         }
 
-        return Ok(ToResponse(result.Value!));
+        return Ok(TokenResponse.From(result.Value!));
     }
 
     public record RefreshRequest(string RefreshToken);
 
+    /// <summary>
+    /// Rotate a refresh token: the presented token is revoked and a new
+    /// access/refresh pair is issued. A previously-rotated or revoked token
+    /// is rejected.
+    /// </summary>
     [HttpPost("refresh")]
+    [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Refresh(RefreshRequest request, CancellationToken cancellationToken)
     {
         var result = await _refreshHandler.HandleAsync(
@@ -87,12 +105,15 @@ public class AuthController : ControllerBase
             });
         }
 
-        return Ok(ToResponse(result.Value!));
+        return Ok(TokenResponse.From(result.Value!));
     }
 
     public record LogoutRequest(string RefreshToken);
 
+    /// <summary>Revoke a refresh token immediately, independent of rotation.</summary>
     [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Logout(LogoutRequest request, CancellationToken cancellationToken)
     {
         var result = await _revokeHandler.HandleAsync(
@@ -111,12 +132,11 @@ public class AuthController : ControllerBase
 
         return NoContent();
     }
+}
 
-    private static object ToResponse(TokenPair tokens) => new
-    {
-        accessToken = tokens.AccessToken,
-        accessTokenExpiresAtUtc = tokens.AccessTokenExpiresAtUtc,
-        refreshToken = tokens.RefreshToken,
-        refreshTokenExpiresAtUtc = tokens.RefreshTokenExpiresAtUtc
-    };
+public record TokenResponse(
+    string AccessToken, DateTime AccessTokenExpiresAtUtc, string RefreshToken, DateTime RefreshTokenExpiresAtUtc)
+{
+    public static TokenResponse From(TokenPair tokens) => new(
+        tokens.AccessToken, tokens.AccessTokenExpiresAtUtc, tokens.RefreshToken, tokens.RefreshTokenExpiresAtUtc);
 }
