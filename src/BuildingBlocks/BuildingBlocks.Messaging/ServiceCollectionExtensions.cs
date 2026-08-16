@@ -22,4 +22,15 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Registers <see cref="IdempotentEventDispatcher"/>. Callers must separately
+    /// register their own <see cref="IProcessedEventStore"/> implementation against
+    /// their service's DbContext.
+    /// </summary>
+    public static IServiceCollection AddIdempotentEventConsumer(this IServiceCollection services)
+    {
+        services.AddScoped<IdempotentEventDispatcher>();
+        return services;
+    }
 }

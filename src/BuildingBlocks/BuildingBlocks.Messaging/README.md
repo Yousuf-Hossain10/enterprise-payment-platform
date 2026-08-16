@@ -60,8 +60,31 @@ Configuration (bound + validated on startup via `BuildingBlocks.Common`'s `AddVa
 }
 ```
 
-**Testing note:** the dispatcher's own logic (publish-then-mark, continue-past-a-single-failure) is unit tested against fake `IOutboxStore`/`IMessagePublisher` — no real broker involved. `RabbitMqMessagePublisher` itself was manually verified against the live local RabbitMQ (Days 8-10) during development, but per `docs/Coding-Standards.md`, real broker/database integration tests as a permanent part of the suite start in Phase 5 via Testcontainers, not before.
+**Testing note:** the dispatcher's own logic (publish-then-mark, continue-past-a-single-failure, batch size propagation, and the `ExecuteAsync` polling loop itself) is unit tested against fake `IOutboxStore`/`IMessagePublisher` — no real broker involved. `RabbitMqMessagePublisher` itself was manually verified against the live local RabbitMQ (Days 8-10) during development, but per `docs/Coding-Standards.md`, real broker/database integration tests as a permanent part of the suite start in Phase 5 via Testcontainers, not before.
 
-## Coming in Day 14
+## `ProcessedEvent` + `IProcessedEventStore` (Day 14)
 
-The idempotent-consumer helper (`ProcessedEvents` pattern) for the consuming side, and additional outbox unit tests.
+The consuming-side counterpart to the outbox: a row per event a service has already handled, so a redelivered or duplicate message under RabbitMQ's at-least-once guarantee is a no-op instead of a repeated side effect. Same shape as `IOutboxStore` — each service implements `IProcessedEventStore` against its own DbContext.
+
+`IsProcessedAsync` is a cheap pre-check, **not** on its own a guarantee against two concurrent deliveries of the same event both passing the check before either marks it processed. The real safety net is the implementer's responsibility: write the `ProcessedEvent` row in the *same transaction* as the handler's business-logic writes (one `DbContext.SaveChangesAsync()` call), with a unique constraint on `EventId` — a duplicate-key failure on that insert means another delivery already handled it, and can be discarded silently. This library provides the shape and the convenience dispatcher below; the transactional guarantee is necessarily each service's own, since this library owns no DbContext.
+
+## `IdempotentEventDispatcher` + `AddIdempotentEventConsumer()` (Day 14)
+
+Wraps a consumer's handler invocation with the idempotent-consumer check:
+
+```csharp
+builder.Services.AddIdempotentEventConsumer();
+builder.Services.AddScoped<IProcessedEventStore, NotificationProcessedEventStore>();
+
+// inside the RabbitMQ consumer callback (Phase 8):
+var wasHandled = await dispatcher.HandleAsync(eventId, async ct =>
+{
+    await SendNotificationAsync(payload, ct);
+}, cancellationToken);
+```
+
+Returns `true` if the handler ran, `false` if the event was already processed and the handler was skipped. **Handler exceptions are never swallowed** — they propagate so the consumer's own retry/DLQ policy (Phase 8) decides what happens next; this class only prevents a *successful* handling from happening twice.
+
+## Coming Later
+
+RabbitMQ consumer scaffolding and dead-letter queue handling are built per-service starting Phase 8 (Notification) — this library provides the idempotency primitive they'll use, not the consumer host itself.

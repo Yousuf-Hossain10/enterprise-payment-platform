@@ -7,7 +7,8 @@ namespace BuildingBlocks.Messaging.Tests;
 
 public class OutboxDispatcherBackgroundServiceTests
 {
-    private static (OutboxDispatcherBackgroundService Dispatcher, IOutboxStore Store, IMessagePublisher Publisher) CreateSut()
+    private static (OutboxDispatcherBackgroundService Dispatcher, IOutboxStore Store, IMessagePublisher Publisher) CreateSut(
+        int batchSize = 50, TimeSpan? pollInterval = null)
     {
         var store = Substitute.For<IOutboxStore>();
         var publisher = Substitute.For<IMessagePublisher>();
@@ -18,8 +19,8 @@ public class OutboxDispatcherBackgroundServiceTests
 
         var options = Options.Create(new OutboxDispatcherOptions
         {
-            BatchSize = 50,
-            PollInterval = TimeSpan.FromSeconds(1)
+            BatchSize = batchSize,
+            PollInterval = pollInterval ?? TimeSpan.FromSeconds(1)
         });
 
         var dispatcher = new OutboxDispatcherBackgroundService(
@@ -95,5 +96,33 @@ public class OutboxDispatcherBackgroundServiceTests
         await dispatcher.DispatchBatchAsync(CancellationToken.None);
 
         await publisher.DidNotReceiveWithAnyArgs().PublishAsync(default!, default!, default);
+    }
+
+    [Fact]
+    public async Task DispatchBatchAsync_RequestsConfiguredBatchSize()
+    {
+        var (dispatcher, store, _) = CreateSut(batchSize: 7);
+        store.GetUnprocessedAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns([]);
+
+        await dispatcher.DispatchBatchAsync(CancellationToken.None);
+
+        await store.Received(1).GetUnprocessedAsync(7, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_PollsRepeatedly_UntilStopped()
+    {
+        var (dispatcher, store, _) = CreateSut(pollInterval: TimeSpan.FromMilliseconds(30));
+        var callCount = 0;
+        store.GetUnprocessedAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<OutboxMessage>>([]))
+            .AndDoes(_ => Interlocked.Increment(ref callCount));
+
+        await dispatcher.StartAsync(CancellationToken.None);
+        await Task.Delay(160); // ~5 poll intervals at 30ms
+        await dispatcher.StopAsync(CancellationToken.None);
+
+        Assert.True(callCount >= 3, $"Expected at least 3 poll cycles, got {callCount}.");
     }
 }
