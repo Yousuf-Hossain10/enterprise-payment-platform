@@ -24,9 +24,9 @@ Anything with a real alternative to weigh — which message broker, which passwo
 |---|---|---|---|
 | ADR-0001 | Message Broker — RabbitMQ vs. Kafka | 2 | Accepted |
 | ADR-0002 | Payment Saga — Orchestration vs. Choreography | 2 | Accepted |
-| ADR-0003 | Monorepo vs. Polyrepo | 2 | Pending |
-| ADR-0004 | Password Hashing Algorithm | 5 | Pending |
-| ADR-0005 | JWT vs. Opaque Tokens + Introspection | 5 | Pending |
+| ADR-0003 | Monorepo vs. Polyrepo | 2 | Accepted |
+| ADR-0004 | Password Hashing Algorithm | 5 | Accepted |
+| ADR-0005 | JWT vs. Opaque Tokens + Introspection | 5 | Accepted |
 | ADR-0006 | Immutable Ledger vs. Mutable Balance Column | 6 | Pending |
 | ADR-0007 | Optimistic vs. Pessimistic Concurrency Control | 6 | Pending |
 | ADR-0008 | Append-Only Audit Table vs. Dedicated Event Store | 9 | Pending |
@@ -42,6 +42,6 @@ Anything with a real alternative to weigh — which message broker, which passwo
 | ADR-0018 | Risk Service — Fail-Open vs. Fail-Closed on Outage | 18 | Pending |
 | ADR-0019 | Reporting Service — Rebuild-on-Demand vs. Always-On Replica | 19 | Pending |
 
-ADR-0001 and ADR-0002 are the two worked examples already written in `ADR-Template-and-Starter-Log.md` and are marked Accepted here to match. All other ADRs are written by the project owner, in phase order, per that file's own instruction — not drafted ahead of time.
+ADR-0001 and ADR-0002 are the two worked examples already written in `ADR-Template-and-Starter-Log.md` and are marked Accepted here to match. As of 2026-08-17, ADRs are drafted by Claude (grounded in the actual implementation) and reviewed/accepted by the project owner, per CLAUDE.md — reversed from the original "written by the project owner only" instruction.
 
 Update this table's Status column as each ADR moves from Pending → Proposed → Accepted (or Deprecated/Superseded). Add new rows if a decision point is discovered mid-implementation that isn't already listed.
