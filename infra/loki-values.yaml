@@ -1,0 +1,11 @@
+# grafana/loki-stack — local dev log aggregation for the `monitoring` namespace.
+# grafana.enabled stays false (chart default) since Grafana itself comes from
+# kube-prometheus-stack; this chart only needs to register a Loki datasource
+# against that existing Grafana via its sidecar-datasource-discovery convention.
+#
+# loki.isDefault override: the chart defaults this to true, which collides
+# with kube-prometheus-stack's Grafana already marking its Prometheus
+# datasource as default — Grafana refuses to start with two defaults
+# ("Only one datasource per organization can be marked as default").
+loki:
+  isDefault: false

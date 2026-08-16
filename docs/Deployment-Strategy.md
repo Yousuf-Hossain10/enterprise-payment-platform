@@ -4,15 +4,23 @@
 
 The tutorial specifies a standalone `kind` cluster for local development. This project deviates: local development runs against **Docker Desktop's built-in Kubernetes** (`kubectl` context `docker-desktop`) instead.
 
-**Why:** the `kind` CLI's binary distribution is served from `github.com`, which is unreachable from the sandboxed environment this project is built in — `kind` couldn't be installed there, while Docker Desktop's Kubernetes toggle (which itself runs `kindest/node` images under the hood) was already available and required no additional download. Functionally the two are close to interchangeable for this project's purposes — both are a real, local, multi-node Kubernetes control plane — so this is a tooling substitution, not a design change: namespace layout, manifests, Helm charts, and NetworkPolicies are all written against plain Kubernetes APIs and are portable to a real `kind` cluster (or any other cluster) without modification if the tooling constraint is later lifted.
+**Why:** the `kind` CLI's binary distribution is served from `github.com`, which is unreachable from the sandboxed environment this project is built in — `kind` couldn't be installed there, while Docker Desktop's Kubernetes toggle (which itself runs `kindest/node` images under the hood) was already available and required no additional download. Functionally the two are close to interchangeable for this project's purposes — both are a real, local Kubernetes control plane — so this is a tooling substitution, not a design change: namespace layout, manifests, Helm charts, and NetworkPolicies are all written against plain Kubernetes APIs and are portable to a real `kind` cluster (or any other cluster) without modification if the tooling constraint is later lifted.
 
 `scripts/bootstrap.sh`/`.ps1` verify the `docker-desktop` context is reachable (overridable via `$KUBE_CONTEXT`/`KUBE_CONTEXT` env var) rather than creating a cluster via `kind create cluster`. There is accordingly no `kind-config.yaml` in this repo.
+
+**Node count and resources:** Docker Desktop's Kubernetes defaults to a multi-node topology (1 control-plane + 5 workers) on this version, which is unnecessary overhead for a solo local capstone — none of this project's Definition of Done checks (NetworkPolicy enforcement, HPA scaling, the Phase 17 chaos test) require multiple physical nodes to validate. The cluster is configured for **1 node**, with Docker Desktop given **7GiB memory / 6 CPUs**, via Docker Desktop's Settings → Resources and Settings → Kubernetes (not something this repo's scripts control — it's host-machine configuration, same category as having Docker installed at all). At the default multi-node topology, this host's available RAM was insufficient to keep the full Postgres/RabbitMQ/Redis/Ingress/observability stack stable (sustained `MemoryPressure`, multi-minute API latency); single-node resolved it.
 
 ## Local Infra Images: `bitnamilegacy`, Not `bitnami`, for RabbitMQ
 
 As of this writing, `docker.io/bitnami/rabbitmq` has **zero published tags** — Broadcom's August 2025 restructuring of the Bitnami catalog moved free-tier images off the `bitnami/*` namespace, in RabbitMQ's case leaving nothing behind at all (Postgres and Redis's `bitnami/*` repos still serve a `latest` tag, so their charts install unmodified). The frozen historical images now live under `bitnamilegacy/*`.
 
 `infra/rabbitmq-values.yaml` overrides `image.repository` to `bitnamilegacy/rabbitmq` at the exact tag the chart expects (`4.1.3-debian-12-r1`), plus `global.security.allowInsecureImages: true`, which the chart requires to deploy an image outside its known-good list (documented upstream workaround, [bitnami/charts#30850](https://github.com/bitnami/charts/issues/30850)). This is a pinned, verified-working workaround for a registry-availability problem, not an endorsement of the `bitnamilegacy` namespace as a long-term source — if this chart's default image is restored to a working state upstream, this override should be removed.
+
+## Grafana + Loki: Only One Default Datasource
+
+`grafana/loki-stack`'s chart defaults `loki.isDefault: true` — it provisions a Loki datasource ConfigMap for Grafana's sidecar-based datasource discovery, and marks it default. Since Grafana itself comes from `kube-prometheus-stack` (installed into the same `monitoring` namespace) and *that* chart already marks its own Prometheus datasource as default, Grafana's sidecar picks up both ConfigMaps and refuses to start: `"Only one datasource per organization can be marked as default"`.
+
+`infra/loki-values.yaml` overrides `loki.isDefault: false` — Prometheus remains the default datasource, Loki is registered as a secondary one. Install order matters here in principle (`kube-prometheus-stack` before `loki`, so Grafana exists for the sidecar to attach to), and `scripts/bootstrap.sh`/`.ps1` install them in that order.
 
 ## Environments
 

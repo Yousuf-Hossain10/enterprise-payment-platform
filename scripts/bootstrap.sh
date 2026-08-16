@@ -2,8 +2,9 @@
 # Stands up the local platform against Docker Desktop's built-in Kubernetes
 # cluster (context "docker-desktop") rather than a standalone `kind` cluster
 # — see the "Local Cluster" deviation note in docs/Deployment-Strategy.md
-# for why. Namespaces + Postgres/RabbitMQ/Redis today (Days 7-8); Ingress +
-# observability stack (Day 9) are appended here as that day lands.
+# for why. Namespaces + Postgres/RabbitMQ/Redis (Days 7-8) + NGINX Ingress
+# and the Prometheus/Grafana/Loki observability stack (Day 9) are all
+# provisioned here; teardown.sh (Day 10) is this script's counterpart.
 set -euo pipefail
 
 CONTEXT="${KUBE_CONTEXT:-docker-desktop}"
@@ -24,6 +25,9 @@ done
 
 echo "==> Adding Helm repositories"
 helm repo add bitnami https://charts.bitnami.com/bitnami >/dev/null
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx >/dev/null
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts >/dev/null
+helm repo add grafana https://grafana.github.io/helm-charts >/dev/null
 helm repo update >/dev/null
 
 echo "==> Installing infra: Postgres, RabbitMQ, Redis"
@@ -34,4 +38,14 @@ helm upgrade --install rabbitmq bitnami/rabbitmq --version 16.0.14 \
 helm upgrade --install redis bitnami/redis --version 28.0.2 \
   -n platform -f "$REPO_ROOT/infra/redis-values.yaml" --wait --timeout 5m
 
-echo "==> Bootstrap complete (namespaces + Postgres/RabbitMQ/Redis as of Phase 3, Day 8)"
+echo "==> Installing NGINX Ingress"
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --version 4.15.1 \
+  -n ingress-nginx --wait --timeout 5m
+
+echo "==> Installing observability stack: kube-prometheus-stack, Loki"
+helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack --version 88.3.0 \
+  -n monitoring --wait --timeout 8m
+helm upgrade --install loki grafana/loki-stack --version 2.10.3 \
+  -n monitoring -f "$REPO_ROOT/infra/loki-values.yaml" --wait --timeout 5m
+
+echo "==> Bootstrap complete (namespaces, Postgres/RabbitMQ/Redis, Ingress, and observability stack as of Phase 3, Day 9)"
