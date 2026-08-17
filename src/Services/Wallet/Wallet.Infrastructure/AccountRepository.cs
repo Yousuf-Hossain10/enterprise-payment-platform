@@ -1,3 +1,5 @@
+using System.Text.Json;
+using BuildingBlocks.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Wallet.Application;
 using Wallet.Domain;
@@ -25,6 +27,14 @@ public class AccountRepository : IAccountRepository
         _db.LedgerEntries.AnyAsync(e => e.IdempotencyKey == idempotencyKey, cancellationToken);
 
     public void AddLedgerEntry(LedgerEntry entry) => _db.LedgerEntries.Add(entry);
+
+    public void EnqueueEvent(string type, object payload) => _db.OutboxMessages.Add(new OutboxMessage
+    {
+        Id = Guid.NewGuid(),
+        Type = type,
+        Payload = JsonSerializer.Serialize(payload),
+        OccurredAtUtc = DateTime.UtcNow
+    });
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {

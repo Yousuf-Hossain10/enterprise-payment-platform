@@ -14,6 +14,17 @@ public interface IAccountRepository
     void AddLedgerEntry(LedgerEntry entry);
 
     /// <summary>
+    /// Enqueues a domain event (e.g. WalletDebited) for outbox dispatch - written to
+    /// the same underlying transaction as the LedgerEntry insert via the next
+    /// SaveChangesAsync call, so the ledger write and the event it describes can
+    /// never go out of sync with each other (docs/Architecture.md's transactional
+    /// outbox pattern). Serialization of <paramref name="payload"/> is an
+    /// Infrastructure concern - Application only supplies the event's type name and
+    /// the object to serialize.
+    /// </summary>
+    void EnqueueEvent(string type, object payload);
+
+    /// <summary>
     /// Separate from AddLedgerEntry so the Account row's LastModifiedAtUtc bump and
     /// the new LedgerEntry insert commit atomically in one SaveChangesAsync call -
     /// same reasoning as Identity's IRefreshTokenRepository (rotation needs the

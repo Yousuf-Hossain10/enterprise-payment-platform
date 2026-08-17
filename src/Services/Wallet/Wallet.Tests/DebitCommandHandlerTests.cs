@@ -34,6 +34,11 @@ public class DebitCommandHandlerTests
             e.Amount == -40m &&
             e.Reference == "ref-1" &&
             e.IdempotencyKey == "key-1"));
+        accounts.Received(1).EnqueueEvent("WalletDebited", Arg.Is<WalletDebited>(e =>
+            e.AccountId == accountId &&
+            e.Amount == 40m &&
+            e.Reference == "ref-1" &&
+            e.IdempotencyKey == "key-1"));
         await accounts.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
@@ -51,6 +56,7 @@ public class DebitCommandHandlerTests
 
         Assert.False(result.IsSuccess);
         accounts.DidNotReceiveWithAnyArgs().AddLedgerEntry(default!);
+        accounts.DidNotReceiveWithAnyArgs().EnqueueEvent(default!, default!);
     }
 
     [Fact]
@@ -83,6 +89,7 @@ public class DebitCommandHandlerTests
 
         Assert.False(result.IsSuccess);
         accounts.DidNotReceiveWithAnyArgs().AddLedgerEntry(default!);
+        accounts.DidNotReceiveWithAnyArgs().EnqueueEvent(default!, default!);
     }
 
     [Fact]

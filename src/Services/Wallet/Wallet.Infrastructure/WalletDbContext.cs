@@ -1,3 +1,4 @@
+using BuildingBlocks.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Wallet.Domain;
 
@@ -11,6 +12,7 @@ public class WalletDbContext : DbContext
 
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

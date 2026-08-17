@@ -1,3 +1,5 @@
+using System.Text.Json;
+using BuildingBlocks.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
 using Wallet.Application;
@@ -194,5 +196,76 @@ public class WalletIntegrationTests : IAsyncLifetime
         // surface as ConcurrencyConflictException, not the raw EF exception type
         // (Wallet.Application must stay free of an EF Core dependency).
         await Assert.ThrowsAsync<ConcurrencyConflictException>(() => repoB.SaveChangesAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Debit_writes_a_WalletDebited_outbox_message_in_the_same_transaction()
+    {
+        var accountId = await SeedAccountAsync(100m);
+        var idempotencyKey = Guid.NewGuid().ToString();
+
+        var result = await _debitHandler.HandleAsync(
+            new DebitCommand(accountId, 30m, idempotencyKey, "order-1"), CancellationToken.None);
+        Assert.True(result.IsSuccess);
+
+        var message = await _db.OutboxMessages.SingleAsync(m => m.Type == "WalletDebited");
+        Assert.Null(message.ProcessedAtUtc);
+        var payload = JsonSerializer.Deserialize<WalletDebited>(message.Payload)!;
+        Assert.Equal(accountId, payload.AccountId);
+        Assert.Equal(30m, payload.Amount);
+        Assert.Equal("order-1", payload.Reference);
+        Assert.Equal(idempotencyKey, payload.IdempotencyKey);
+    }
+
+    [Fact]
+    public async Task Credit_writes_a_WalletCredited_outbox_message_in_the_same_transaction()
+    {
+        var accountId = await SeedAccountAsync(100m);
+        var idempotencyKey = Guid.NewGuid().ToString();
+
+        var result = await _creditHandler.HandleAsync(
+            new CreditCommand(accountId, 30m, idempotencyKey, "refund-1"), CancellationToken.None);
+        Assert.True(result.IsSuccess);
+
+        var message = await _db.OutboxMessages.SingleAsync(m => m.Type == "WalletCredited");
+        Assert.Null(message.ProcessedAtUtc);
+        var payload = JsonSerializer.Deserialize<WalletCredited>(message.Payload)!;
+        Assert.Equal(accountId, payload.AccountId);
+        Assert.Equal(30m, payload.Amount);
+        Assert.Equal("refund-1", payload.Reference);
+        Assert.Equal(idempotencyKey, payload.IdempotencyKey);
+    }
+
+    [Fact]
+    public async Task Retried_debit_does_not_enqueue_a_second_outbox_message()
+    {
+        var accountId = await SeedAccountAsync(100m);
+        var idempotencyKey = Guid.NewGuid().ToString();
+
+        await _debitHandler.HandleAsync(new DebitCommand(accountId, 30m, idempotencyKey, "order-1"), CancellationToken.None);
+        await _debitHandler.HandleAsync(new DebitCommand(accountId, 30m, idempotencyKey, "order-1"), CancellationToken.None);
+
+        var messageCount = await _db.OutboxMessages.CountAsync(m => m.Type == "WalletDebited");
+        Assert.Equal(1, messageCount);
+    }
+
+    [Fact]
+    public async Task WalletOutboxStore_returns_unprocessed_messages_and_MarkProcessedAsync_excludes_them_afterward()
+    {
+        var accountId = await SeedAccountAsync(100m);
+        await _debitHandler.HandleAsync(
+            new DebitCommand(accountId, 30m, Guid.NewGuid().ToString(), "order-1"), CancellationToken.None);
+
+        await using var storeContext = NewContext();
+        var store = new WalletOutboxStore(storeContext);
+
+        var unprocessed = await store.GetUnprocessedAsync(50, CancellationToken.None);
+        Assert.Single(unprocessed);
+        Assert.Equal("WalletDebited", unprocessed[0].Type);
+
+        await store.MarkProcessedAsync(unprocessed[0].Id, DateTime.UtcNow, CancellationToken.None);
+
+        var stillUnprocessed = await store.GetUnprocessedAsync(50, CancellationToken.None);
+        Assert.Empty(stillUnprocessed);
     }
 }

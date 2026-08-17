@@ -34,6 +34,11 @@ public class CreditCommandHandlerTests
             e.Amount == 40m &&
             e.Reference == "ref-1" &&
             e.IdempotencyKey == "key-1"));
+        accounts.Received(1).EnqueueEvent("WalletCredited", Arg.Is<WalletCredited>(e =>
+            e.AccountId == accountId &&
+            e.Amount == 40m &&
+            e.Reference == "ref-1" &&
+            e.IdempotencyKey == "key-1"));
         await accounts.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
@@ -83,6 +88,7 @@ public class CreditCommandHandlerTests
 
         Assert.False(result.IsSuccess);
         accounts.DidNotReceiveWithAnyArgs().AddLedgerEntry(default!);
+        accounts.DidNotReceiveWithAnyArgs().EnqueueEvent(default!, default!);
     }
 
     [Fact]

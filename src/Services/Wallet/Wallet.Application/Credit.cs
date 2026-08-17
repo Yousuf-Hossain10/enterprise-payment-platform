@@ -1,5 +1,6 @@
 using BuildingBlocks.Common;
 using FluentValidation;
+using Wallet.Domain;
 
 namespace Wallet.Application;
 
@@ -47,7 +48,11 @@ public class CreditCommandHandler
         // account, so there's nothing here analogous to the insufficient-funds guard.
         var balance = await _accounts.GetBalanceAsync(command.AccountId, cancellationToken);
 
+        var occurredAtUtc = DateTime.UtcNow;
         return await LedgerWriter.ApplyAsync(
-            _accounts, account, balance, command.Amount, command.IdempotencyKey, command.Reference, cancellationToken);
+            _accounts, account, balance, command.Amount, command.IdempotencyKey, command.Reference,
+            nameof(WalletCredited),
+            new WalletCredited(command.AccountId, command.Amount, command.Reference, command.IdempotencyKey, occurredAtUtc),
+            cancellationToken);
     }
 }

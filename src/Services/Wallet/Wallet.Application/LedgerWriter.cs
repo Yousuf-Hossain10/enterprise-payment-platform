@@ -18,6 +18,8 @@ internal static class LedgerWriter
         decimal signedAmount,
         string idempotencyKey,
         string reference,
+        string eventType,
+        object eventPayload,
         CancellationToken cancellationToken)
     {
         account.LastModifiedAtUtc = DateTime.UtcNow;
@@ -31,6 +33,10 @@ internal static class LedgerWriter
             IdempotencyKey = idempotencyKey,
             OccurredAtUtc = DateTime.UtcNow
         });
+
+        // Same SaveChangesAsync as the LedgerEntry insert - the event can never be
+        // published for a write that didn't durably commit, or vice versa.
+        accounts.EnqueueEvent(eventType, eventPayload);
 
         try
         {
