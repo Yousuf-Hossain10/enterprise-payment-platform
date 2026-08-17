@@ -1,5 +1,6 @@
 using BuildingBlocks.Common;
 using BuildingBlocks.Observability;
+using BuildingBlocks.Security;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -17,9 +18,14 @@ builder.Services.AddPlatformObservability(serviceName: "payment-service");
 builder.Services.AddDbContext<PaymentDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PaymentDb")));
 
+builder.Services.AddPlatformJwtAuthentication();
+
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IValidator<CapturePaymentCommand>, CapturePaymentCommandValidator>();
 builder.Services.AddScoped<CapturePaymentCommandHandler>();
+builder.Services.AddScoped<IValidator<CreatePaymentCommand>, CreatePaymentCommandValidator>();
+builder.Services.AddScoped<CreatePaymentCommandHandler>();
+builder.Services.AddScoped<GetPaymentByIdQueryHandler>();
 
 // Wallet's availability directly gates whether the capture saga can proceed, so
 // its client gets retry + circuit-breaker resilience per
@@ -56,6 +62,7 @@ app.UseHttpsRedirection();
 app.UseCorrelationId();
 app.UseProblemDetailsExceptionHandler();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

@@ -151,4 +151,42 @@ public class PaymentIntegrationTests : IAsyncLifetime
 
         await Assert.ThrowsAsync<DbUpdateException>(() => _db.SaveChangesAsync());
     }
+
+    [Fact]
+    public async Task CreatePayment_persists_a_new_payment_in_Created_status()
+    {
+        var accountId = Guid.NewGuid();
+        var handler = new CreatePaymentCommandHandler(new PaymentRepository(_db), new CreatePaymentCommandValidator());
+
+        var result = await handler.HandleAsync(
+            new CreatePaymentCommand(accountId, 40m, "order-1", Guid.NewGuid().ToString()), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+
+        await using var verifyDb = new PaymentDbContext(
+            new DbContextOptionsBuilder<PaymentDbContext>().UseNpgsql(_postgres.GetConnectionString()).Options);
+        var persisted = await verifyDb.Payments.SingleAsync(p => p.Id == result.Value!.Id);
+        Assert.Equal(PaymentStatus.Created, persisted.Status);
+        Assert.Equal(accountId, persisted.AccountId);
+    }
+
+    [Fact]
+    public async Task Retried_CreatePayment_with_the_same_idempotency_key_produces_exactly_one_payment()
+    {
+        var accountId = Guid.NewGuid();
+        var idempotencyKey = Guid.NewGuid().ToString();
+        var handler = new CreatePaymentCommandHandler(new PaymentRepository(_db), new CreatePaymentCommandValidator());
+
+        var first = await handler.HandleAsync(
+            new CreatePaymentCommand(accountId, 40m, "order-1", idempotencyKey), CancellationToken.None);
+        var retry = await handler.HandleAsync(
+            new CreatePaymentCommand(accountId, 40m, "order-1", idempotencyKey), CancellationToken.None);
+
+        Assert.True(first.IsSuccess);
+        Assert.True(retry.IsSuccess);
+        Assert.Equal(first.Value!.Id, retry.Value!.Id);
+
+        var count = await _db.Payments.CountAsync(p => p.IdempotencyKey == idempotencyKey);
+        Assert.Equal(1, count);
+    }
 }

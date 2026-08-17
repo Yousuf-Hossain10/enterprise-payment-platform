@@ -9,5 +9,9 @@ public interface IPaymentRepository
 {
     Task<Payment.Domain.Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken);
 
+    Task<Payment.Domain.Payment?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken);
+
+    void Add(Payment.Domain.Payment payment);
+
     Task SaveAsync(Payment.Domain.Payment payment, CancellationToken cancellationToken);
 }
