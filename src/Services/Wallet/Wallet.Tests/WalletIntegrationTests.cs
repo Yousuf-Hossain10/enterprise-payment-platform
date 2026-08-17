@@ -7,31 +7,42 @@ using Wallet.Infrastructure;
 namespace Wallet.Tests;
 
 /// <summary>
-/// Exercises DebitCommandHandler against a real, throwaway Postgres container - no
-/// mocks - per docs/Coding-Standards.md. In particular proves the idempotency-key
-/// replay guarantee end-to-end: the real unique index on LedgerEntry.IdempotencyKey
-/// is what actually makes a retried debit safe, not just the in-handler existence
-/// check (which a mock-based unit test can't prove on its own).
+/// Exercises Debit/CreditCommandHandler against a real, throwaway Postgres
+/// container - no mocks - per docs/Coding-Standards.md. In particular proves the
+/// idempotency-key replay guarantee end-to-end: the real unique index on
+/// LedgerEntry.IdempotencyKey is what actually makes a retried debit/credit safe,
+/// not just the in-handler existence check (which a mock-based unit test can't
+/// prove on its own) - and that AccountRepository.SaveChangesAsync translates a
+/// genuine Postgres concurrency conflict into ConcurrencyConflictException, not
+/// just a mocked one. The dedicated N-concurrent-requests stress test is Day 27's
+/// scope, not this file's.
 /// </summary>
 public class WalletIntegrationTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine").Build();
     private WalletDbContext _db = default!;
     private DebitCommandHandler _debitHandler = default!;
+    private CreditCommandHandler _creditHandler = default!;
+    private string _connectionString = default!;
 
     public async Task InitializeAsync()
     {
         await _postgres.StartAsync();
+        _connectionString = _postgres.GetConnectionString();
 
         var options = new DbContextOptionsBuilder<WalletDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .Options;
         _db = new WalletDbContext(options);
         await _db.Database.MigrateAsync();
 
         var accounts = new AccountRepository(_db);
         _debitHandler = new DebitCommandHandler(accounts, new DebitCommandValidator());
+        _creditHandler = new CreditCommandHandler(accounts, new CreditCommandValidator());
     }
+
+    private WalletDbContext NewContext() =>
+        new(new DbContextOptionsBuilder<WalletDbContext>().UseNpgsql(_connectionString).Options);
 
     public async Task DisposeAsync()
     {
@@ -108,5 +119,80 @@ public class WalletIntegrationTests : IAsyncLifetime
 
         var entryCount = await _db.LedgerEntries.CountAsync(e => e.AccountId == accountId && e.Amount < 0);
         Assert.Equal(0, entryCount);
+    }
+
+    [Fact]
+    public async Task Credit_increases_balance_by_the_credited_amount()
+    {
+        var accountId = await SeedAccountAsync(100m);
+
+        var result = await _creditHandler.HandleAsync(
+            new CreditCommand(accountId, 30m, Guid.NewGuid().ToString(), "refund-1"), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(130m, result.Value);
+    }
+
+    [Fact]
+    public async Task Retried_credit_with_the_same_idempotency_key_produces_exactly_one_ledger_entry()
+    {
+        var accountId = await SeedAccountAsync(100m);
+        var idempotencyKey = Guid.NewGuid().ToString();
+
+        var first = await _creditHandler.HandleAsync(
+            new CreditCommand(accountId, 30m, idempotencyKey, "refund-1"), CancellationToken.None);
+        var retry = await _creditHandler.HandleAsync(
+            new CreditCommand(accountId, 30m, idempotencyKey, "refund-1"), CancellationToken.None);
+
+        Assert.True(first.IsSuccess);
+        Assert.True(retry.IsSuccess);
+        Assert.Equal(first.Value, retry.Value);
+
+        var entryCount = await _db.LedgerEntries.CountAsync(e => e.IdempotencyKey == idempotencyKey);
+        Assert.Equal(1, entryCount);
+    }
+
+    [Fact]
+    public async Task AccountRepository_translates_a_real_concurrency_conflict_into_ConcurrencyConflictException()
+    {
+        var accountId = await SeedAccountAsync(100m);
+
+        await using var contextA = NewContext();
+        await using var contextB = NewContext();
+        var repoA = new AccountRepository(contextA);
+        var repoB = new AccountRepository(contextB);
+
+        var accountA = await repoA.GetByIdAsync(accountId, CancellationToken.None);
+        var accountB = await repoB.GetByIdAsync(accountId, CancellationToken.None);
+        Assert.NotNull(accountA);
+        Assert.NotNull(accountB);
+
+        accountA!.LastModifiedAtUtc = DateTime.UtcNow;
+        repoA.AddLedgerEntry(new LedgerEntry
+        {
+            Id = Guid.NewGuid(),
+            AccountId = accountId,
+            Amount = 10m,
+            Reference = "race-a",
+            IdempotencyKey = Guid.NewGuid().ToString(),
+            OccurredAtUtc = DateTime.UtcNow
+        });
+        await repoA.SaveChangesAsync(CancellationToken.None);
+
+        accountB!.LastModifiedAtUtc = DateTime.UtcNow;
+        repoB.AddLedgerEntry(new LedgerEntry
+        {
+            Id = Guid.NewGuid(),
+            AccountId = accountId,
+            Amount = 5m,
+            Reference = "race-b",
+            IdempotencyKey = Guid.NewGuid().ToString(),
+            OccurredAtUtc = DateTime.UtcNow
+        });
+
+        // repoB's tracked Account still carries the pre-repoA-write xmin - this must
+        // surface as ConcurrencyConflictException, not the raw EF exception type
+        // (Wallet.Application must stay free of an EF Core dependency).
+        await Assert.ThrowsAsync<ConcurrencyConflictException>(() => repoB.SaveChangesAsync(CancellationToken.None));
     }
 }

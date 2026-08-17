@@ -3,11 +3,11 @@ using FluentValidation;
 
 namespace Wallet.Application;
 
-public record DebitCommand(Guid AccountId, decimal Amount, string IdempotencyKey, string Reference);
+public record CreditCommand(Guid AccountId, decimal Amount, string IdempotencyKey, string Reference);
 
-public class DebitCommandValidator : AbstractValidator<DebitCommand>
+public class CreditCommandValidator : AbstractValidator<CreditCommand>
 {
-    public DebitCommandValidator()
+    public CreditCommandValidator()
     {
         RuleFor(x => x.AccountId).NotEmpty();
         RuleFor(x => x.Amount).GreaterThan(0);
@@ -16,25 +16,25 @@ public class DebitCommandValidator : AbstractValidator<DebitCommand>
     }
 }
 
-public class DebitCommandHandler
+public class CreditCommandHandler
 {
     private readonly IAccountRepository _accounts;
-    private readonly IValidator<DebitCommand> _validator;
+    private readonly IValidator<CreditCommand> _validator;
 
-    public DebitCommandHandler(IAccountRepository accounts, IValidator<DebitCommand> validator)
+    public CreditCommandHandler(IAccountRepository accounts, IValidator<CreditCommand> validator)
     {
         _accounts = accounts;
         _validator = validator;
     }
 
-    public async Task<Result<decimal>> HandleAsync(DebitCommand command, CancellationToken cancellationToken)
+    public async Task<Result<decimal>> HandleAsync(CreditCommand command, CancellationToken cancellationToken)
     {
         var validation = await _validator.ValidateAsync(command, cancellationToken);
         if (!validation.IsValid)
             return Result<decimal>.Failure(string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
 
         // Idempotency check first - a retried request must be a no-op, not a double
-        // debit. The unique index on LedgerEntry.IdempotencyKey is the real
+        // credit. The unique index on LedgerEntry.IdempotencyKey is the real
         // enforcement; this check just avoids racing toward it unnecessarily.
         if (await _accounts.ExistsByIdempotencyKeyAsync(command.IdempotencyKey, cancellationToken))
             return Result<decimal>.Success(await _accounts.GetBalanceAsync(command.AccountId, cancellationToken));
@@ -43,11 +43,11 @@ public class DebitCommandHandler
         if (account is null)
             return Result<decimal>.Failure("Account not found.");
 
+        // No upper bound to check - unlike Debit, a credit can never overdraw an
+        // account, so there's nothing here analogous to the insufficient-funds guard.
         var balance = await _accounts.GetBalanceAsync(command.AccountId, cancellationToken);
-        if (balance < command.Amount)
-            return Result<decimal>.Failure("Insufficient funds.");
 
         return await LedgerWriter.ApplyAsync(
-            _accounts, account, balance, -command.Amount, command.IdempotencyKey, command.Reference, cancellationToken);
+            _accounts, account, balance, command.Amount, command.IdempotencyKey, command.Reference, cancellationToken);
     }
 }
