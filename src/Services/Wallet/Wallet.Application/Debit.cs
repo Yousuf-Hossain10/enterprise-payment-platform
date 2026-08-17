@@ -45,14 +45,17 @@ public class DebitCommandHandler
             return Result<decimal>.Failure("Account not found.");
 
         var balance = await _accounts.GetBalanceAsync(command.AccountId, cancellationToken);
-        if (balance < command.Amount)
-            return Result<decimal>.Failure("Insufficient funds.");
 
         var occurredAtUtc = DateTime.UtcNow;
         return await LedgerWriter.ApplyAsync(
             _accounts, account, balance, -command.Amount, command.IdempotencyKey, command.Reference,
             nameof(WalletDebited),
             new WalletDebited(command.AccountId, command.Amount, command.Reference, command.IdempotencyKey, occurredAtUtc),
+            // Re-checked on every retry attempt against the freshly reloaded
+            // balance, not just once up front - a concurrent debit that commits
+            // between attempts can legitimately turn a once-fine request into an
+            // insufficient-funds failure.
+            currentBalance => currentBalance < command.Amount ? Result<decimal>.Failure("Insufficient funds.") : null,
             cancellationToken);
     }
 }

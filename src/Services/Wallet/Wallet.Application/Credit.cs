@@ -53,6 +53,7 @@ public class CreditCommandHandler
             _accounts, account, balance, command.Amount, command.IdempotencyKey, command.Reference,
             nameof(WalletCredited),
             new WalletCredited(command.AccountId, command.Amount, command.Reference, command.IdempotencyKey, occurredAtUtc),
+            validateBalance: null,
             cancellationToken);
     }
 }

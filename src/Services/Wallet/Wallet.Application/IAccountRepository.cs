@@ -35,4 +35,15 @@ public interface IAccountRepository
     /// debit/credit committed first.
     /// </exception>
     Task SaveChangesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Recovery step after a ConcurrencyConflictException: discards whatever
+    /// LedgerEntry/OutboxMessage rows the failed attempt had staged (so a retry
+    /// doesn't try to insert them a second time and collide with itself on the
+    /// idempotency-key unique index), and refreshes <paramref name="account"/>'s
+    /// tracked state - including RowVersion - from the database, so the next
+    /// attempt's concurrency check is against the current row, not the stale one
+    /// that just lost the race.
+    /// </summary>
+    Task ReloadAsync(Account account, CancellationToken cancellationToken);
 }

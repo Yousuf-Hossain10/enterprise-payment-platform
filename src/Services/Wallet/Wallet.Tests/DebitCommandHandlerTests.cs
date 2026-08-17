@@ -93,7 +93,7 @@ public class DebitCommandHandlerTests
     }
 
     [Fact]
-    public async Task Fails_WhenConcurrentModificationIsDetected()
+    public async Task Fails_WhenConcurrentModificationIsDetected_OnEveryAttempt()
     {
         var accountId = Guid.NewGuid();
         var sut = CreateSut(out var accounts);
@@ -107,6 +107,36 @@ public class DebitCommandHandlerTests
             new DebitCommand(accountId, 40m, "key-1", "ref-1"), CancellationToken.None);
 
         Assert.False(result.IsSuccess);
+        // MaxAttempts total - retries exhausted, not given up after the first loss.
+        await accounts.Received(25).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await accounts.Received(24).ReloadAsync(Arg.Any<Account>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Succeeds_AfterRetryingPastATransientConcurrencyConflict()
+    {
+        var accountId = Guid.NewGuid();
+        var sut = CreateSut(out var accounts);
+        accounts.ExistsByIdempotencyKeyAsync("key-1", Arg.Any<CancellationToken>()).Returns(false);
+        accounts.GetByIdAsync(accountId, Arg.Any<CancellationToken>()).Returns(SampleAccount(accountId));
+        accounts.GetBalanceAsync(accountId, Arg.Any<CancellationToken>()).Returns(100m);
+
+        var saveAttempt = 0;
+        accounts.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            saveAttempt++;
+            return saveAttempt == 1
+                ? throw new ConcurrencyConflictException("stale", new Exception())
+                : Task.CompletedTask;
+        });
+
+        var result = await sut.HandleAsync(
+            new DebitCommand(accountId, 40m, "key-1", "ref-1"), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(60m, result.Value);
+        await accounts.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await accounts.Received(1).ReloadAsync(Arg.Any<Account>(), Arg.Any<CancellationToken>());
     }
 
     [Theory]

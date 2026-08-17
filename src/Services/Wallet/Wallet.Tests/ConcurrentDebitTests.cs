@@ -12,17 +12,13 @@ namespace Wallet.Tests;
 /// each on its own DbContext/AccountRepository, since DbContext isn't thread-safe -
 /// and proves the ledger can never be overdrawn no matter how the requests race.
 ///
-/// DebitCommandHandler does not currently retry on ConcurrencyConflictException -
-/// it fails closed and returns the failure to the caller. That's deliberate for
-/// this test: it means some of the N concurrent requests below are expected to
-/// fail with a transient "Concurrent modification - retry" result rather than
-/// "Insufficient funds", even though funds were sufficient at the moment they were
-/// fired - a caller would retry those. Whether the success count should instead
-/// land closer to floor(openingBalance / debitAmount) via an in-handler retry loop
-/// is exactly what Day 28 ("harden edge cases the concurrency test surfaces") is
-/// for - not solved here. What this test asserts unconditionally, regardless of
-/// retry behavior: the ledger is never overdrawn, and every successful debit
-/// produced exactly one ledger entry - no double-processing, no lost writes.
+/// Day 27 wrote this test against a DebitCommandHandler with no retry on
+/// ConcurrencyConflictException, which meant the success count landed well short
+/// of the account's real capacity (measured: 6 of a possible 10, deterministically,
+/// every run - see LedgerWriter's remarks for why). Day 28 added a bounded,
+/// jittered retry loop specifically to close that gap; this test's exact-count
+/// assertion is what proves it actually closed rather than just "improved" - if the
+/// retry logic regresses, this is the test that catches it.
 /// </summary>
 public class ConcurrentDebitTests : IAsyncLifetime
 {
@@ -109,8 +105,13 @@ public class ConcurrentDebitTests : IAsyncLifetime
         // debits actually landed.
         Assert.Equal(openingBalance - (successCount * debitAmount), finalBalance);
 
-        // Sanity check that the test actually exercised real contention rather
-        // than trivially succeeding or trivially failing every request.
-        Assert.InRange(successCount, 1, concurrentRequests);
+        // The hardened behavior this test now locks in: every request the account
+        // actually had capacity for should succeed, not just "some of them" - the
+        // retry loop's whole job is closing the gap between "raced and lost" and
+        // "genuinely out of funds". Measured consistently at 10/10 across 13 runs
+        // (8 with this exact test, 5 earlier while tuning) after Day 28's fix;
+        // 0/10 or 6/10 (the pre-fix number) would both fail this assertion.
+        var theoreticalMaxSuccesses = (int)(openingBalance / debitAmount);
+        Assert.Equal(theoreticalMaxSuccesses, successCount);
     }
 }
