@@ -69,11 +69,16 @@ public class CapturePaymentCommandHandler
         if (!debitResult.IsSuccess)
         {
             payment.MarkFailed(debitResult.Error!);
+            _payments.EnqueueEvent(nameof(PaymentFailed), new PaymentFailed(
+                payment.Id, payment.AccountId, payment.Amount, payment.Reference,
+                debitResult.Error!, DateTime.UtcNow));
             await _payments.SaveAsync(payment, cancellationToken);
             return Result<Payment.Domain.Payment>.Failure(debitResult.Error!);
         }
 
         payment.MarkCaptured();
+        _payments.EnqueueEvent(nameof(PaymentCaptured), new PaymentCaptured(
+            payment.Id, payment.AccountId, payment.Amount, payment.Reference, DateTime.UtcNow));
         await _payments.SaveAsync(payment, cancellationToken);
         return Result<Payment.Domain.Payment>.Success(payment);
     }

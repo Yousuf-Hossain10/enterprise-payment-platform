@@ -13,5 +13,15 @@ public interface IPaymentRepository
 
     void Add(Payment.Domain.Payment payment);
 
+    /// <summary>
+    /// Enqueues a domain event (e.g. PaymentCaptured) for outbox dispatch - written
+    /// to the same underlying transaction as the payment's SaveAsync call, so the
+    /// write and the event describing it can never go out of sync
+    /// (docs/Architecture.md's transactional outbox pattern). Serialization is an
+    /// Infrastructure concern - Application only supplies the event's type name and
+    /// the object to serialize.
+    /// </summary>
+    void EnqueueEvent(string type, object payload);
+
     Task SaveAsync(Payment.Domain.Payment payment, CancellationToken cancellationToken);
 }

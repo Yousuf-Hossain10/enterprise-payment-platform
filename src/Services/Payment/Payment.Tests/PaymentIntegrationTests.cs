@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BuildingBlocks.Common;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
@@ -188,5 +189,77 @@ public class PaymentIntegrationTests : IAsyncLifetime
 
         var count = await _db.Payments.CountAsync(p => p.IdempotencyKey == idempotencyKey);
         Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task Capture_writes_a_PaymentCaptured_outbox_message_in_the_same_transaction()
+    {
+        var paymentId = await SeedPaymentAsync(40m);
+        var walletClient = Substitute.For<IWalletClient>();
+        walletClient.DebitAsync(
+                Arg.Any<Guid>(), 40m, Arg.Any<string>(), paymentId.ToString(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Result<decimal>.Success(60m));
+        var handler = new CapturePaymentCommandHandler(
+            new PaymentRepository(_db), walletClient, new CapturePaymentCommandValidator());
+
+        var result = await handler.HandleAsync(
+            new CapturePaymentCommand(paymentId, Guid.NewGuid().ToString(), null), CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+
+        var message = await _db.OutboxMessages.SingleAsync(m => m.Type == "PaymentCaptured");
+        Assert.Null(message.ProcessedAtUtc);
+        var payload = JsonSerializer.Deserialize<PaymentCaptured>(message.Payload)!;
+        Assert.Equal(paymentId, payload.PaymentId);
+        Assert.Equal(40m, payload.Amount);
+    }
+
+    [Fact]
+    public async Task Capture_writes_a_PaymentFailed_outbox_message_in_the_same_transaction()
+    {
+        var paymentId = await SeedPaymentAsync(40m);
+        var walletClient = Substitute.For<IWalletClient>();
+        walletClient.DebitAsync(
+                Arg.Any<Guid>(), 40m, Arg.Any<string>(), paymentId.ToString(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Result<decimal>.Failure("Insufficient funds."));
+        var handler = new CapturePaymentCommandHandler(
+            new PaymentRepository(_db), walletClient, new CapturePaymentCommandValidator());
+
+        var result = await handler.HandleAsync(
+            new CapturePaymentCommand(paymentId, Guid.NewGuid().ToString(), null), CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+
+        var message = await _db.OutboxMessages.SingleAsync(m => m.Type == "PaymentFailed");
+        Assert.Null(message.ProcessedAtUtc);
+        var payload = JsonSerializer.Deserialize<PaymentFailed>(message.Payload)!;
+        Assert.Equal(paymentId, payload.PaymentId);
+        Assert.Equal("Insufficient funds.", payload.FailureReason);
+    }
+
+    [Fact]
+    public async Task PaymentOutboxStore_returns_unprocessed_messages_and_MarkProcessedAsync_excludes_them_afterward()
+    {
+        var paymentId = await SeedPaymentAsync(40m);
+        var walletClient = Substitute.For<IWalletClient>();
+        walletClient.DebitAsync(
+                Arg.Any<Guid>(), 40m, Arg.Any<string>(), paymentId.ToString(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Result<decimal>.Success(60m));
+        var handler = new CapturePaymentCommandHandler(
+            new PaymentRepository(_db), walletClient, new CapturePaymentCommandValidator());
+        await handler.HandleAsync(new CapturePaymentCommand(paymentId, Guid.NewGuid().ToString(), null), CancellationToken.None);
+
+        await using var storeContext = new PaymentDbContext(
+            new DbContextOptionsBuilder<PaymentDbContext>().UseNpgsql(_postgres.GetConnectionString()).Options);
+        var store = new PaymentOutboxStore(storeContext);
+
+        var unprocessed = await store.GetUnprocessedAsync(50, CancellationToken.None);
+        Assert.Single(unprocessed);
+        Assert.Equal("PaymentCaptured", unprocessed[0].Type);
+
+        await store.MarkProcessedAsync(unprocessed[0].Id, DateTime.UtcNow, CancellationToken.None);
+
+        var stillUnprocessed = await store.GetUnprocessedAsync(50, CancellationToken.None);
+        Assert.Empty(stillUnprocessed);
     }
 }

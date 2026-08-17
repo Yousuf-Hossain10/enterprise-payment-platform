@@ -1,3 +1,5 @@
+using System.Text.Json;
+using BuildingBlocks.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Payment.Application;
 
@@ -16,6 +18,14 @@ public class PaymentRepository : IPaymentRepository
         _db.Payments.SingleOrDefaultAsync(p => p.IdempotencyKey == idempotencyKey, cancellationToken);
 
     public void Add(Payment.Domain.Payment payment) => _db.Payments.Add(payment);
+
+    public void EnqueueEvent(string type, object payload) => _db.OutboxMessages.Add(new OutboxMessage
+    {
+        Id = Guid.NewGuid(),
+        Type = type,
+        Payload = JsonSerializer.Serialize(payload),
+        OccurredAtUtc = DateTime.UtcNow
+    });
 
     public Task SaveAsync(Payment.Domain.Payment payment, CancellationToken cancellationToken) =>
         _db.SaveChangesAsync(cancellationToken);

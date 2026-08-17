@@ -42,6 +42,8 @@ public class CapturePaymentCommandHandlerTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal(PaymentStatus.Captured, result.Value!.Status);
+        payments.Received(1).EnqueueEvent("PaymentCaptured", Arg.Is<PaymentCaptured>(e =>
+            e.PaymentId == paymentId && e.AccountId == accountId && e.Amount == 40m));
         await payments.Received(1).SaveAsync(payment, Arg.Any<CancellationToken>());
     }
 
@@ -64,6 +66,8 @@ public class CapturePaymentCommandHandlerTests
         Assert.Equal("Insufficient funds.", result.Error);
         Assert.Equal(PaymentStatus.Failed, payment.Status);
         Assert.Equal("Insufficient funds.", payment.FailureReason);
+        payments.Received(1).EnqueueEvent("PaymentFailed", Arg.Is<PaymentFailed>(e =>
+            e.PaymentId == paymentId && e.AccountId == accountId && e.FailureReason == "Insufficient funds."));
         await payments.Received(1).SaveAsync(payment, Arg.Any<CancellationToken>());
     }
 

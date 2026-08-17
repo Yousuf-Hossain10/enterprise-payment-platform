@@ -1,4 +1,5 @@
 using BuildingBlocks.Common;
+using BuildingBlocks.Messaging;
 using BuildingBlocks.Observability;
 using BuildingBlocks.Security;
 using FluentValidation;
@@ -26,6 +27,13 @@ builder.Services.AddScoped<CapturePaymentCommandHandler>();
 builder.Services.AddScoped<IValidator<CreatePaymentCommand>, CreatePaymentCommandValidator>();
 builder.Services.AddScoped<CreatePaymentCommandHandler>();
 builder.Services.AddScoped<GetPaymentByIdQueryHandler>();
+
+// Outbox dispatch - PaymentCaptured/PaymentFailed events written by
+// PaymentRepository.EnqueueEvent (same transaction as the terminal-status save,
+// per CapturePaymentCommandHandler) are picked up by the background dispatcher
+// registered here and published to RabbitMQ.
+builder.Services.AddOutboxDispatcher();
+builder.Services.AddScoped<IOutboxStore, PaymentOutboxStore>();
 
 // Wallet's availability directly gates whether the capture saga can proceed, so
 // its client gets retry + circuit-breaker resilience per
