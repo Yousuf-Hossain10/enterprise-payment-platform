@@ -27,8 +27,8 @@ Anything with a real alternative to weigh — which message broker, which passwo
 | ADR-0003 | Monorepo vs. Polyrepo | 2 | Accepted |
 | ADR-0004 | Password Hashing Algorithm | 5 | Accepted |
 | ADR-0005 | JWT vs. Opaque Tokens + Introspection | 5 | Accepted |
-| ADR-0006 | Immutable Ledger vs. Mutable Balance Column | 6 | Pending |
-| ADR-0007 | Optimistic vs. Pessimistic Concurrency Control | 6 | Pending |
+| ADR-0006 | Immutable Ledger vs. Mutable Balance Column | 6 | Accepted |
+| ADR-0007 | Optimistic vs. Pessimistic Concurrency Control | 6 | Accepted |
 | ADR-0008 | Append-Only Audit Table vs. Dedicated Event Store | 9 | Pending |
 | ADR-0009 | State Management — NgRx vs. Angular Signals | 10 | Pending |
 | ADR-0010 | Gateway — YARP vs. Ocelot | 10 | Pending |
