@@ -22,6 +22,9 @@ builder.Services.AddScoped<IValidator<CreditCommand>, CreditCommandValidator>();
 builder.Services.AddScoped<DebitCommandHandler>();
 builder.Services.AddScoped<CreditCommandHandler>();
 
+builder.Services.AddScoped<IReconciliationRepository, ReconciliationRepository>();
+builder.Services.AddScoped<GetReconciliationReportQueryHandler>();
+
 // Outbox dispatch - WalletDebited/WalletCredited events written by
 // AccountRepository.EnqueueEvent (same transaction as the ledger write) are picked
 // up by the background dispatcher registered here and published to RabbitMQ.
