@@ -33,4 +33,23 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IdempotentEventDispatcher>();
         return services;
     }
+
+    /// <summary>
+    /// Registers the RabbitMQ consumer background service, bound to the routing
+    /// keys configured under "RabbitMqConsumer". Callers must separately register
+    /// their own <see cref="IEventHandler"/> implementation - this library has no
+    /// opinion on what a delivered message means. Safe to call alongside
+    /// <see cref="AddOutboxDispatcher"/> in a service that both publishes and
+    /// consumes (re-registering the shared "RabbitMq" options section twice is
+    /// harmless - it just runs the same validation twice).
+    /// </summary>
+    public static IServiceCollection AddRabbitMqConsumer(this IServiceCollection services)
+    {
+        services.AddValidatedOptions<RabbitMqOptions>("RabbitMq");
+        services.AddValidatedOptions<RabbitMqConsumerOptions>("RabbitMqConsumer");
+
+        services.AddHostedService<RabbitMqConsumerBackgroundService>();
+
+        return services;
+    }
 }

@@ -50,7 +50,7 @@ public class OutboxDispatcherBackgroundServiceTests
 
         await dispatcher.DispatchBatchAsync(CancellationToken.None);
 
-        await publisher.Received(1).PublishAsync("TestEvent", "{}", Arg.Any<CancellationToken>());
+        await publisher.Received(1).PublishAsync(message.Id, "TestEvent", "{}", Arg.Any<CancellationToken>());
         await store.Received(1).MarkProcessedAsync(message.Id, Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
     }
 
@@ -61,7 +61,7 @@ public class OutboxDispatcherBackgroundServiceTests
         var message = NewMessage("TestEvent");
         store.GetUnprocessedAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns([message]);
-        publisher.When(p => p.PublishAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()))
+        publisher.When(p => p.PublishAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()))
             .Do(_ => throw new InvalidOperationException("broker down"));
 
         await dispatcher.DispatchBatchAsync(CancellationToken.None);
@@ -77,7 +77,7 @@ public class OutboxDispatcherBackgroundServiceTests
         var succeeding = NewMessage("Succeeding");
         store.GetUnprocessedAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns([failing, succeeding]);
-        publisher.When(p => p.PublishAsync("Failing", Arg.Any<string>(), Arg.Any<CancellationToken>()))
+        publisher.When(p => p.PublishAsync(failing.Id, "Failing", Arg.Any<string>(), Arg.Any<CancellationToken>()))
             .Do(_ => throw new InvalidOperationException("broker down"));
 
         await dispatcher.DispatchBatchAsync(CancellationToken.None);
@@ -95,7 +95,7 @@ public class OutboxDispatcherBackgroundServiceTests
 
         await dispatcher.DispatchBatchAsync(CancellationToken.None);
 
-        await publisher.DidNotReceiveWithAnyArgs().PublishAsync(default!, default!, default);
+        await publisher.DidNotReceiveWithAnyArgs().PublishAsync(default, default!, default!, default);
     }
 
     [Fact]

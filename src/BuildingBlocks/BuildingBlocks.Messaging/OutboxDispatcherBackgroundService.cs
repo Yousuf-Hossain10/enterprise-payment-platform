@@ -52,7 +52,7 @@ public sealed class OutboxDispatcherBackgroundService : BackgroundService
         {
             try
             {
-                await _publisher.PublishAsync(message.Type, message.Payload, cancellationToken);
+                await _publisher.PublishAsync(message.Id, message.Type, message.Payload, cancellationToken);
                 await store.MarkProcessedAsync(message.Id, DateTime.UtcNow, cancellationToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)

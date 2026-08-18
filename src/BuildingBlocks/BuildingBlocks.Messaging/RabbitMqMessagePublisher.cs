@@ -22,7 +22,7 @@ public sealed class RabbitMqMessagePublisher : IMessagePublisher, IAsyncDisposab
         _options = options.Value;
     }
 
-    public async Task PublishAsync(string type, string payload, CancellationToken cancellationToken)
+    public async Task PublishAsync(Guid messageId, string type, string payload, CancellationToken cancellationToken)
     {
         var channel = await GetChannelAsync(cancellationToken);
 
@@ -30,7 +30,8 @@ public sealed class RabbitMqMessagePublisher : IMessagePublisher, IAsyncDisposab
         var properties = new BasicProperties
         {
             Persistent = true,
-            Type = type
+            Type = type,
+            MessageId = messageId.ToString()
         };
 
         await channel.BasicPublishAsync(
